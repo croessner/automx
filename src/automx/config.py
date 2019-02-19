@@ -1,6 +1,6 @@
 """
 automx - auto configuration service
-Copyright (c) 2011-2013 [*] sys4 AG
+Copyright (c) 2011-2019 R.N.S.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ import ipaddress
 try:
     import configparser
 except ImportError:
-    # noinspection PyPep8Naming
+    # noinspection PyPep8Naming,PyUnresolvedReferences,SpellCheckingInspection
     import ConfigParser as configparser
 
 try:
@@ -50,9 +50,9 @@ from collections import OrderedDict
 from builtins import dict, int, str
 
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 __author__ = "Christian Roessner, Patrick Ben Koetter"
-__copyright__ = "Copyright (c) 2011-2015 [*] sys4 AG"
+__copyright__ = "Copyright (c) 2011-2019 R.N.S."
 
 # List of boolean words that have the meaning "true"
 TRUE = ('1', 'y', 'yes', 't', 'true', 'on')
@@ -78,7 +78,8 @@ class Config(configparser.RawConfigParser):
     like IMAP is configured before POP3 or upside down, because a MUA follows
     this order.
 
-    The class currently support smtp, pop, imap, carddav, caldav and ox services.
+    The class currently support smtp, pop, imap, carddav, caldav and ox
+    services.
 
     The class currently supports the following backends:
 
@@ -241,6 +242,7 @@ class Config(configparser.RawConfigParser):
                     raise Exception("Missing option <backend>")
 
             if backend in ("static", "static_append"):
+                service = None
                 for opt in iter(self.options(section)):
                     if opt in ("action",
                                "account_type",
@@ -280,7 +282,8 @@ class Config(configparser.RawConfigParser):
                     else:
                         pass
 
-                    if opt in ("smtp", "imap", "pop", "caldav", "carddav", "ox"):
+                    if opt in (
+                            "smtp", "imap", "pop", "caldav", "carddav", "ox"):
                         if backend == "static_append":
                             if opt in settings:
                                 if self.debug:
@@ -309,9 +312,11 @@ class Config(configparser.RawConfigParser):
 
             elif backend in ("ldap", "ldap_append"):
                 try:
+                    # noinspection PyPackageRequirements
                     import ldap
+                    # noinspection PyPackageRequirements
                     import ldap.sasl
-                except:
+                except ImportError:
                     raise Exception("python ldap missing")
 
                 ldap_cfg = dict(host="ldap://127.0.0.1/",
@@ -479,7 +484,7 @@ class Config(configparser.RawConfigParser):
                 try:
                     # noinspection PyPackageRequirements
                     from sqlalchemy.engine import create_engine
-                except:
+                except ImportError:
                     raise Exception("python sqlalchemy missing")
 
                 sql_cfg = dict(host=None, query="", result_attrs=[])
@@ -860,6 +865,7 @@ class Config(configparser.RawConfigParser):
                 # string
                 return ""
 
+        # noinspection RegExpRedundantEscape
         result = re.sub(r"\$\{(\w+)(:%[sud1-9])?\}",
                         repl,
                         expression,
@@ -871,8 +877,8 @@ class Config(configparser.RawConfigParser):
         return result
 
     def __find_section(self, domain):
-        l = self.sections()
-        for section in iter(l):
+        sections = self.sections()
+        for section in iter(sections):
             if section.lower() == domain.lower():
                 return section
 

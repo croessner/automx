@@ -1,6 +1,6 @@
 """
 automx - auto configuration service
-Copyright (c) 2011-2013 [*] sys4 AG
+Copyright (c) 2011-2019 R.N.S.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -41,10 +41,11 @@ try:
     # noinspection PyCompatibility
     from urllib.error import HTTPError
 except ImportError:
-    # noinspection PyCompatibility
+    # noinspection PyCompatibility,PyUnresolvedReferences
     from urlparse import urlparse, parse_qs
+    # noinspection PyUnresolvedReferences
     from urllib import urlencode, unquote
-    # noinspection PyCompatibility
+    # noinspection PyCompatibility,PyUnresolvedReferences
     from urllib2 import urlopen, Request, HTTPError
 
 from automx.config import Config
@@ -54,9 +55,9 @@ from automx.view import View
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 __author__ = "Christian Roessner, Patrick Ben Koetter"
-__copyright__ = "Copyright (c) 2011-2015 [*] sys4 AG"
+__copyright__ = "Copyright (c) 2011-2019 R.N.S."
 
 # HTTP status codes
 STAT_OK = "200 OK"

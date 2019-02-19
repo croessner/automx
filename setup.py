@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(name='automx',
       description='Provides account configuration data to mailclients',
-      url='https://github.com/sys4/automx',
+      url='https://github.com/croessner/automx',
       author_email='c@roessner.co',
       maintainer='Christian Roessner',
       keywords=['wsgi', 'autoconfig', 'autodiscover', 'mobileconfig'],
@@ -15,7 +15,8 @@ setup(name='automx',
       package_dir={'': 'src'},
       data_files=[('/etc', ['src/conf/automx.conf'])],
       scripts=['src/automx-test'],
-      requires=['future', 'lxml', 'ipaddress'],
+      requires=['future', 'lxml', 'ipaddress', 'python-dateutil',
+                'python-ldap', 'sqlalchemy'],
       classifiers=[
             'Development Status :: 4 - Beta',
             'Environment :: No Input/Output (Daemon)',

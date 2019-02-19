@@ -1,6 +1,6 @@
 """
 automx - auto configuration service
-Copyright (c) 2011-2013 [*] sys4 AG
+Copyright (c) 2011-2019 R.N.S.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,13 +32,17 @@ try:
     # noinspection PyUnresolvedReferences
     from plistlib import load, dumps, FMT_XML
 except ImportError:
-    # noinspection PyPep8Naming
+    # noinspection PyPep8Naming,PyUnresolvedReferences,PyProtectedMember
     from plistlib import readPlist, writePlistToString
 
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 __author__ = "Christian Roessner, Patrick Ben Koetter"
-__copyright__ = "Copyright (c) 2011-2015 [*] sys4 AG"
+__copyright__ = "Copyright (c) 2011-2019 R.N.S."
+
+
+class ViewUnknownServiceFound(Exception):
+    pass
 
 
 class View(object):
@@ -76,6 +80,7 @@ class View(object):
                 path = self.__model.domain[self.__schema]
                 try:
                     if sys.version_info < (3,):
+                        # noinspection PyDeprecation
                         plist_tmp = readPlist(path)
                     else:
                         plist_tmp = load(path)
@@ -133,7 +138,8 @@ class View(object):
                     raise Exception("Missing attribute <action>")
 
                 for key, value in self.__model.domain.items():
-                    if key in ("smtp", "imap", "pop", "caldav", "carddav", "ox"):
+                    if key in (
+                            "smtp", "imap", "pop", "caldav", "carddav", "ox"):
                         if len(value) != 0:
                             protocol = etree.SubElement(account, "Protocol")
                             self.__service(key, protocol)
@@ -291,12 +297,12 @@ class View(object):
                                 PayloadVersion=1)
 
     def __service(self, service, root, proto=None):
-        l = self.__model.domain[service]
+        mds = self.__model.domain[service]
 
         if self.__schema == "autodiscover":
             # we assume, autodiscover only supports single protocols! So we
             # only use the first defined list element
-            elem = l[0]
+            elem = mds[0]
 
             c = etree.SubElement(root, "Type")
 
@@ -387,7 +393,7 @@ class View(object):
                     c.text = "on"
 
         elif self.__schema == "autoconfig":
-            for elem in iter(l):
+            for elem in iter(mds):
                 if service == "smtp":
                     sub_root = etree.SubElement(root,
                                                 "outgoingServer",
@@ -400,6 +406,9 @@ class View(object):
                     sub_root = etree.SubElement(root,
                                                 "incomingServer",
                                                 type="pop3")
+                else:
+                    raise ViewUnknownServiceFound(
+                        "Unknown service type {0}".format(service))
 
                 if service + "_server" in elem:
                     c = etree.SubElement(sub_root, "hostname")
@@ -460,7 +469,7 @@ class View(object):
 
         elif self.__schema == "mobileconfig":
             # see autodiscover comment above
-            elem = l[0]
+            elem = mds[0]
 
             if service == "imap":
                 proto["type"] = "EmailTypeIMAP"
@@ -537,7 +546,7 @@ class View(object):
                                   xml_declaration=True,
                                   method="xml",
                                   encoding="utf-8",
-                                  pretty_print=True)
+                                  pretty_print=False)
 
         elif self.__plist is not None:
             if sys.version_info < (3,):
