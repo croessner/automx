@@ -45,6 +45,14 @@ class ViewUnknownServiceFound(Exception):
     pass
 
 
+class ViewElementMissingError(Exception):
+    pass
+
+
+class ViewActionNotSupported(Exception):
+    pass
+
+
 class View(object):
     """
     The view class uses the data structure built with the model class Config.
@@ -103,25 +111,27 @@ class View(object):
                                             "Response",
                                             xmlns=NS_Response)
 
-                if ("display_name" in self.__model.domain or
-                        ("smtp" in self.__model.domain and
-                         "smtp_author" in self.__model.domain["smtp"][0])):
+                if ("display_name" in self.__model.domain and
+                        "smtp" in self.__model.domain and
+                        "smtp_author" in self.__model.domain["smtp"][0]):
 
                     user = etree.SubElement(response, "User")
 
-                    if "display_name" in self.__model.domain:
-                        displayname = etree.SubElement(user, "DisplayName")
-                        displayname.text = self.__model.domain["display_name"]
+                    displayname = etree.SubElement(user, "DisplayName")
+                    displayname.text = self.__model.domain["display_name"]
 
-                    if "smtp" in self.__model.domain:
-                        smtp = self.__model.domain["smtp"]
+                    smtp = self.__model.domain["smtp"]
 
-                        if "smtp_author" in smtp[0]:
-                            email = smtp[0]["smtp_author"]
+                    if "smtp_author" in smtp[0]:
+                        email = smtp[0]["smtp_author"]
 
-                            smtp_author = etree.SubElement(
-                                user, "AutoDiscoverSMTPAddress")
-                            smtp_author.text = email
+                        smtp_author = etree.SubElement(
+                            user, "AutoDiscoverSMTPAddress")
+                        smtp_author.text = email
+                else:
+                    raise ViewElementMissingError(
+                        "Missing attribute(s) <display_name> <smtp> "
+                        "<smtp_author>")
 
                 account = etree.SubElement(response, "Account")
 
@@ -129,13 +139,19 @@ class View(object):
                     account_type = etree.SubElement(account, "AccountType")
                     account_type.text = self.__model.domain["account_type"]
                 else:
-                    raise Exception("Missing attribute <account_type>")
+                    raise ViewElementMissingError(
+                        "Missing attribute <account_type>")
 
                 if "action" in self.__model.domain:
                     action = etree.SubElement(account, "Action")
+                    if self.__model.domain["action"] != "settings":
+                        # NOTE: Maybe we will accept other actions in future
+                        # releases
+                        raise ViewActionNotSupported("'action' must be set to "
+                                                     "'settings'")
                     action.text = self.__model.domain["action"]
                 else:
-                    raise Exception("Missing attribute <action>")
+                    raise ViewElementMissingError("Missing attribute <action>")
 
                 for key, value in self.__model.domain.items():
                     if key in (
@@ -546,7 +562,7 @@ class View(object):
                                   xml_declaration=True,
                                   method="xml",
                                   encoding="utf-8",
-                                  pretty_print=False)
+                                  pretty_print=True)
 
         elif self.__plist is not None:
             if sys.version_info < (3,):

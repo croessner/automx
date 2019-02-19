@@ -27,6 +27,7 @@ import re
 import logging
 # noinspection PyCompatibility
 import ipaddress
+import pprint
 
 try:
     import configparser
@@ -785,6 +786,8 @@ class Config(configparser.RawConfigParser):
 
                     if author == "%s":
                         proto_settings[opt] = self.__emailaddress
+                    else:
+                        proto_settings[opt] = author
 
                 if self.has_option(section, service + "_default"):
                     try:
@@ -872,7 +875,7 @@ class Config(configparser.RawConfigParser):
                         re.UNICODE)
 
         if self.debug:
-            logging.debug("__expand_vars()->result=%s" % result)
+            logging.debug("__expand_vars(%s)->result=%s" % (expression, result))
 
         return result
 
@@ -883,6 +886,12 @@ class Config(configparser.RawConfigParser):
                 return section
 
         raise NoSectionError(domain)
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return pprint.pformat(self.__domain)
 
     @property
     def provider(self):

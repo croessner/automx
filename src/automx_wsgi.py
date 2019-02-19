@@ -260,6 +260,7 @@ def application(environ, start_response):
     if process:
         if data.debug:
             logging.debug("Entering view()")
+            logging.debug(data)
         try:
             view = View(data, schema, subschema)
             response_body = view.render()
