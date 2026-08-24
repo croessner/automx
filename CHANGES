@@ -1,3 +1,14 @@
+* Version 1.2.0 - 2026 modernization
+---------------------------------
+- Require CPython 3.14 and use pyproject-based packaging
+- Replace WSGI with FastAPI, ASGI, and Uvicorn
+- Implement Mail Autoconfig 1.2, corrected Autodiscover XML, experimental
+  Autodiscover v2, PACC-02, OAuth public-client metadata, and password-free
+  Mobileconfig
+- Add deterministic OpenAPI, a modular operator CLI, DNS record generation,
+  Docker E2E, SPDX/CycloneDX SBOMs, and security scan gates
+- Replace the historical automx-test shell client with automx probe commands
+
 * Version 1.1.2
 ---------------------------------
 - Added support for cal/carddav

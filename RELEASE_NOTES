@@ -1,65 +1,18 @@
-Version 1.1.0 to 1.1.1:
+automx 1.2.0
+===========
 
-Added some Outlook options
+This release is a ground-up modernization of the established automx service.
+It requires CPython 3.14, runs as a pure FastAPI/ASGI application, and replaces
+the historical shell client with the modular `automx` operator CLI.
 
-Version 0.10 to 1.1.0:
+Protocol work includes Mail Autoconfig XML 1.2, corrected Outlook and
+MobileSync Autodiscover XML, an opt-in experimental Autodiscover v2 subset,
+PACC-02 with exact UAAC1 DNS digests, OAuth public-client/DCR metadata, and
+password-free Apple Mobileconfig profiles.
 
-Many smaller bugs have been fixed. M2Crypto was removed in favor of an
-external call to OpenSSL.
+Deployment now includes a hardened non-root container, a Docker Compose E2E
+stack, deterministic OpenAPI export, SPDX and CycloneDX SBOM targets, and
+vulnerability/secret scan gates. Review `docs/migration.md` before upgrading.
 
-Major changes are that this release is the first release that works for
-Python 2.7 up to Python 3.5. Please see also the installation instructions.
-For Python 3.x you should replace python-ldap with pyldap, which is a drop-in
-replacement that is compatible with Python 2 and Python 3.
-
-The master branch had a interim version of 0.10.3, which was primarily a bug
-fix release. As automx itself was mostly feature complete, it would had
-become the version 1.0.0. Because porting it to Py2/3, the version directly
-jumps to 1.1.0
-
-Version 0.9.x to 0.10:
-
-Automx does support mobileconfig profiles for Apple iOS devices as well as
-Mac OS X Mail. The profiles are optionally signed.
-
-The backend "file" was expanded and does support the new option mobileconfig,
-which may point to a mobileconfig file (it is the equivalent to the
-autoconfig/autodiscover option of that specific backend).
-
-Version 0.8 to 0.9:
-
-Failure Counter (Denial-of-Service-Attack protection)
-A failure counter tracks bad (email address) requests. The counter serves to
-protect automx from Denial-of-Service-Attacks.
-
-An attacker might try to iterate a list of email addresses against automx to
-see, if the server returns valid results or 500 temp errors. This feature is
-expected to be especially useful for automx setups using database driven
-backends. automx will stop querying the database once the border limit
-has been reached.
-
-The protection is built using memcached, as it allows a central instance to
-collect for multiple automx processes.
-
-Multi Service Profiles
-Multi service profile support allows to serve more than one setting for the
-same service within a profile.
-
-For this we added several new backends and a new option that allows automx to
-follow any further backends. These backends may either substitute the former
-settings or add new information.
-
-
-Improved Logging
-As we made some changes to the code, we realized that it important to change
-logging behavior. So we now log all automx messages to an extra file and also
-the debugging output does give us much more information as the version 0.8.
-
-
-Code Cleanups
-Many changes have been done inside the code itself. Code cleanups and a better
-exception handling for situations, where no data could be retrieved from
-databases. Also the main file now is much cleaner, as we introduced some
-constant variables for error codes.
-
-# vim: set tw=80:
+The IETF specifications used by several features are Internet-Drafts. Their
+exact pinned versions are listed in `docs/protocols/status.md`.

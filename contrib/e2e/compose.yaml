@@ -1,0 +1,62 @@
+services:
+  automx:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        PYTHON_IMAGE: python:3.14.7-slim-trixie
+        VERSION: 1.2.0
+    image: automx:e2e
+    read_only: true
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - ./automx.conf:/etc/automx/automx.conf:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2).read()
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s
+
+  probe:
+    image: automx:e2e
+    depends_on:
+      automx:
+        condition: service_healthy
+    entrypoint:
+      - automx
+    command:
+      - probe
+      - all
+      - --base-url
+      - http://automx:8000
+      - --email
+      - user@example.test
+      - --allow-insecure-http
+      - --include-experimental
+      - --config
+      - /etc/automx/automx.conf
+      - --domain
+      - example.test
+    read_only: true
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - ./automx.conf:/etc/automx/automx.conf:ro

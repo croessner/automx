@@ -1,6 +1,6 @@
 """
-automx - auto configuration service
-Copyright (c) 2011-2013 [*] sys4 AG
+automx - automatic account configuration service
+Copyright (c) 2011-2026 Christian Roessner and contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = '0.10.2'
+__version__ = "1.2.0"
 __author__ = "Christian Roessner, Patrick Ben Koetter"
-__copyright__ = "Copyright (c) 2011-2013 [*] sys4 AG"
+__copyright__ = "Copyright (c) 2011-2026 Christian Roessner and contributors"
 
-__all__ = ['config', 'view']
+__all__ = ["__version__"]

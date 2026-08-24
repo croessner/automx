@@ -1,11 +1,16 @@
-Thanks to: .webflow GmbH
+get_mx.py
+=========
 
-On our mailserver it´s necessary that automx dynamically detects the MX-Record from the requested domain to return the perfect configuration.
-I´ve build a small automx-script for this problem.
+This helper resolves the lowest-preference MX record for a domain. It prints
+the second argument as a fallback when DNS returns NXDOMAIN, no usable answer,
+no nameserver, or a timeout.
 
-The script takes the first argument and detects the primary MX-Record.
-The second argument is used as fallback if the MX detection gets an timeout or other exception.
+Usage::
 
-You need the dnspython module for this script to run:
+    python contrib/get_mx.py example.com mail.example.com
 
-pip install dnspython
+Install automx with the ``dns`` extra when using this helper::
+
+    pip install 'automx[dns]'
+
+Original contribution: .webflow GmbH.

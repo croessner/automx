@@ -6,3 +6,17 @@
 .DS_Store
 src/foundation-scss/.sass-cache/
 .idea
+temp/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.cache/
+htmlcov/
+dist/
+build/
+*.egg-info/

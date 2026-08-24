@@ -1,0 +1,105 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "automx"
+version = "1.2.0"
+description = "Standards-oriented automatic account configuration service"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+  { name = "Christian Roessner", email = "c@roessner.co" },
+  { name = "Patrick Ben Koetter" },
+]
+keywords = [
+  "asgi",
+  "autoconfig",
+  "autodiscover",
+  "email",
+  "pacc",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: No Input/Output (Daemon)",
+  "Framework :: FastAPI",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Communications :: Email",
+]
+dependencies = [
+  "email-validator>=2.2,<3",
+  "fastapi>=0.140.9,<0.141",
+  "lxml>=6.1.1,<7",
+  "pydantic>=2.11,<3",
+  "python-multipart>=0.0.20,<0.1",
+  "uvicorn[standard]>=0.52.4,<0.53",
+]
+
+[project.optional-dependencies]
+ldap = ["python-ldap>=3.4.4,<4"]
+sql = ["sqlalchemy>=2.0.43,<3"]
+cache = ["pymemcache>=4.0,<5"]
+dns = ["dnspython>=2.8,<3"]
+dev = [
+  "build>=1.3,<2",
+  "hatchling>=1.27,<2",
+  "httpx2>=2.10,<3",
+  "jsonschema[format]>=4.25,<5",
+  "mypy>=2.3,<3",
+  "pip-audit>=2.9,<3",
+  "pytest>=9.1.1,<10",
+  "pytest-cov>=7,<8",
+  "ruff>=0.16.3,<0.17",
+]
+
+[project.scripts]
+automx = "automx.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/croessner/automx"
+Issues = "https://github.com/croessner/automx/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/automx"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers --showlocals"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["automx"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = [
+  "doc",
+  "src/foundation-scss",
+  "src/html",
+]
+
+[tool.ruff.lint]
+select = ["B", "E4", "E7", "E9", "F", "I", "N", "PERF", "RUF", "S", "SIM", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+pretty = true
+files = ["src/automx"]
+
+[[tool.mypy.overrides]]
+module = ["lxml.*"]
+ignore_missing_imports = true

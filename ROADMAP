@@ -1,11 +1,14 @@
-Version 1.1.0 to 1.2.0:
+automx roadmap
+==============
 
-* We may implement a web services backend.
+- Track successor versions of the Mail Autoconfig, PACC, and OAuth Public
+  Clients Internet-Drafts without silently changing the 1.2 contracts.
+- Expand Autodiscover v2 only when a stable public specification or proven
+  interoperability requirement exists.
+- Add real-client interoperability fixtures separately from the deterministic,
+  dependency-free baseline E2E stack.
+- Evaluate signed Mobileconfig support only with an in-process, secret-safe key
+  abstraction and explicit operator demand.
 
-* We may implement further iOS options for CalDAV and CardDAV and similar.
-
-* Maybe we will include mutt support.
-
-* Proxy for Autodiscover.
-
-No further plans at this time of writing.
+DNS mutation, OAuth client registration, identity-provider behavior, and
+mailbox-login testing remain outside automx's product boundary.

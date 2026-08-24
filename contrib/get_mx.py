@@ -1,23 +1,37 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+"""Print the primary MX hostname, or a caller-provided fallback."""
 
+from __future__ import annotations
+
+import argparse
+
+import dns.exception
 import dns.resolver
-import re
-import sys
 
-domain = str(sys.argv[1])
 
-try:
-    mx_objects = dns.resolver.query(domain,'MX')
-except:
-    print str(sys.argv[2])
-    sys.exit(0)
+def primary_mx(domain: str, fallback: str) -> str:
+    """Resolve the lowest-preference MX without hiding programming errors."""
+    try:
+        answers = dns.resolver.resolve(domain.rstrip("."), "MX")
+    except (
+        dns.exception.Timeout,
+        dns.resolver.NoAnswer,
+        dns.resolver.NoNameservers,
+        dns.resolver.NXDOMAIN,
+    ):
+        return fallback
 
-mx_server = {}
+    records = sorted(answers, key=lambda answer: (answer.preference, str(answer.exchange)))
+    return str(records[0].exchange).rstrip(".") if records else fallback
 
-for server in mx_objects:
-    mx_server[server.preference] = server.exchange
 
-primary_mx_server = re.sub('\.$', '', mx_server[sorted(mx_server)[0]].to_text())
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("domain")
+    parser.add_argument("fallback")
+    args = parser.parse_args()
+    print(primary_mx(args.domain, args.fallback))
 
-print primary_mx_server
 
+if __name__ == "__main__":
+    main()

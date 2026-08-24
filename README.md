@@ -1,21 +1,88 @@
 # automx
 
-This is automx, a mail client account configuration service. automx combines
-various autoconfiguration techniques in one webservice.
+automx is a standards-oriented automatic account configuration service for
+mail and groupware clients. Version 1.2 is a Python 3.14, FastAPI, and pure-ASGI
+modernization of the original automx codebase.
 
-## Mailclients
-automx can provision Outlook, Thunderbird, iOS devices and other clients that
-support either Microsoft's autodiscover mechanism or Mozilla's autoconfig.
+It serves:
 
-## Backends
-automx can either statically or dynamically generate email account information
-using various backends. It supports reading individual account configuration
-from LDAP, SQL and SCRIPT.
+- Mail Autoconfig XML 1.2;
+- Microsoft Autodiscover XML for Outlook and MobileSync;
+- a deliberately narrow, experimental Autodiscover v2 subset;
+- PACC JSON according to `draft-ietf-mailmaint-pacc-02`;
+- password-free Apple Mail `.mobileconfig` profiles;
+- OAuth public-client metadata without publishing client secrets.
 
-## What's next?
+PACC, Mail Autoconfig 1.2, and OAuth Public Clients are Internet-Drafts. Their
+implemented versions are pinned in [Protocol status](docs/protocols/status.md).
 
-- Join the mailing list at https://mail.sys4.de/cgi-bin/mailman/listinfo/automx-users
+## Quick start
 
-- Download the lastest release from https://github.com/sys4/automx/releases/latest
+Python 3.14 is required.
 
-- Read installation instructions in the INSTALL file.
+```console
+python3.14 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -e '.[dev]'
+.venv/bin/automx config validate --config contrib/e2e/automx.conf
+.venv/bin/automx serve --config contrib/e2e/automx.conf --port 8000
+```
+
+The interactive OpenAPI UI is then available at `http://127.0.0.1:8000/docs`
+and the machine-readable document at `/openapi.json`.
+
+For an isolated container proof:
+
+```console
+make e2e
+```
+
+The E2E stack builds the image, proves its non-root and read-only operation,
+then probes every public protocol family through the installed `automx` CLI.
+
+## Operator CLI
+
+The CLI replaces the historical `automx-test` shell script and is split into
+maintainable Python subcommand modules.
+
+```console
+automx config validate --config /etc/automx/automx.conf
+automx openapi check --config /etc/automx/automx.conf
+automx openapi export --config /etc/automx/automx.conf --output openapi.json
+automx pacc digest --config /etc/automx/automx.conf --domain example.com
+automx dns records --config /etc/automx/automx.conf \
+  --domain example.com --service-host config.example.net
+automx probe all --base-url https://autodiscover.example.com \
+  --email probe@example.com --include-experimental
+```
+
+DNS commands only print a deployment plan; they never modify DNS. A protected
+probe can read `username:password` from an explicitly named environment
+variable with `--basic-auth-env`; credentials are never accepted as CLI
+arguments.
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Configuration reference](docs/configuration.md)
+- [ASGI and container deployment](docs/deployment.md)
+- [CLI, DNS, and OpenAPI](docs/cli.md)
+- [Protocol status and normative sources](docs/protocols/status.md)
+- [OAuth, OIDC discovery, and DCR](docs/protocols/oauth-dcr.md)
+- [PACC deployment](docs/protocols/pacc.md)
+- [E2E, SBOM, and security scans](docs/testing.md)
+- [Migration from automx 1.x](docs/migration.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
+## Development gates
+
+```console
+make check
+make coverage
+make audit
+make e2e
+make scan IMAGE=automx:dev
+```
+
+Repository working rules are in [AGENTS.md](AGENTS.md). Product and security
+boundaries are in [POLICY.md](POLICY.md). Licensed under GPL-3.0-or-later.
