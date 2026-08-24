@@ -13,6 +13,8 @@
   publication without inventing a registration endpoint
 - Let protocol probes validate the Microsoft 602 contract when MobileSync is
   intentionally not configured
+- Restore the browser-based Apple profile workflow with a script-free,
+  password-free Mobileconfig form and cover negative MobileSync probe errors
 - Replace the historical automx-test shell client with automx probe commands
 
 * Version 1.1.2

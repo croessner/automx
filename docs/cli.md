@@ -35,7 +35,9 @@ automx dns records --config /etc/automx/automx.conf \
 The command emits Autoconfig and Autodiscover aliases, the Autodiscover SRV
 record, the PACC service alias, and the exact UAAC1 TXT digest. `--format json`
 is suitable for infrastructure tooling. This command is always read-only and
-has no provider credentials or apply mode.
+has no provider credentials or apply mode. A CNAME whose owner name equals
+`--service-host` is omitted because the canonical service host must publish
+A/AAAA records rather than an alias to itself.
 
 ## Remote probes
 

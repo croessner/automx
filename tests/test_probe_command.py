@@ -10,6 +10,11 @@ from fastapi.testclient import TestClient
 from automx.app import create_app
 from automx.cli import main
 from automx.commands import probe
+from automx.renderers.autodiscover import (
+    MOBILE_REQUEST_NAMESPACE,
+    MOBILE_RESPONSE_NAMESPACE,
+    render_autodiscover_error,
+)
 
 ROOT = Path(__file__).parents[1]
 CONFIG = ROOT / "contrib/e2e/automx.conf"
@@ -64,6 +69,29 @@ class LocalProbeClient:
         return response.content
 
 
+class InvalidMobileSyncProbeClient(LocalProbeClient):
+    def request(
+        self,
+        path: str,
+        *,
+        body: bytes | None = None,
+        content_type: str | None = None,
+        expected_status: int = 200,
+    ) -> bytes:
+        if body is not None and MOBILE_REQUEST_NAMESPACE.encode("ascii") in body:
+            return render_autodiscover_error(
+                601,
+                "Provider Not Available",
+                response_namespace=MOBILE_RESPONSE_NAMESPACE,
+            )
+        return super().request(
+            path,
+            body=body,
+            content_type=content_type,
+            expected_status=expected_status,
+        )
+
+
 def test_every_remote_probe_contract_against_the_real_asgi_app() -> None:
     client: Any = LocalProbeClient()
 
@@ -85,6 +113,13 @@ def test_autodiscover_probe_accepts_the_schema_error_when_mobile_sync_is_absent(
 
     assert results[0].status == "passed"
     assert "not configured" in results[0].detail
+
+
+def test_autodiscover_probe_rejects_a_different_mobile_sync_error() -> None:
+    client: Any = InvalidMobileSyncProbeClient(ROOT / "contrib/node1/automx.conf")
+
+    with pytest.raises(ValueError, match="does not contain MobileSync"):
+        probe.probe_autodiscover(client, "probe@roessner-net.de", False)
 
 
 def test_probe_all_cli_reports_json_and_local_pacc_parity(

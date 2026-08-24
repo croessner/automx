@@ -30,6 +30,13 @@ Exchange REST, EWS, ActiveSync, Graph, OAB, or Actions endpoint. The standard
 Autoconfig, both Microsoft Autodiscover XML schemas, Mobileconfig, PACC, health,
 and OpenAPI routes remain available.
 
+## Apple configuration profiles
+
+Open `https://autoconfig.roessner-net.de/mobileconfig` in Safari to request a
+password-free Apple Mail configuration profile. The service root redirects to
+the same form. It accepts only the mail address and an optional display name;
+the device asks for account credentials when it first connects.
+
 ## Deployment
 
 Copy `compose.yaml` and `automx.conf` to `/srv/docker/automx`. Create a root-only

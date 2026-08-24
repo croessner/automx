@@ -57,6 +57,27 @@ def test_mobileconfig_is_deterministic_and_contains_no_password(tmp_path: Path) 
     assert "OutgoingPassword" not in mail
 
 
+def test_mobileconfig_browser_form_is_password_free_and_root_redirects(tmp_path: Path) -> None:
+    client = TestClient(create_app(config_path=config(tmp_path)))
+
+    root = client.get("/")
+    form = client.get("/mobileconfig")
+
+    assert root.status_code == 200
+    assert root.url.path == "/mobileconfig"
+    assert root.history[0].status_code == 307
+    assert form.status_code == 200
+    assert form.headers["content-type"].startswith("text/html")
+    assert form.headers["cache-control"] == "no-store"
+    assert "form-action 'self'" in form.headers["content-security-policy"]
+    assert form.headers["referrer-policy"] == "no-referrer"
+    assert form.headers["x-content-type-options"] == "nosniff"
+    assert 'action="/mobileconfig"' in form.text
+    assert 'name="emailaddress"' in form.text
+    assert 'name="cn"' in form.text
+    assert "password" not in form.text.lower()
+
+
 def test_mobileconfig_rejects_passwords_and_ambiguous_forms(tmp_path: Path) -> None:
     client = TestClient(create_app(config_path=config(tmp_path)))
 

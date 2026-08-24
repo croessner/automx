@@ -8,7 +8,7 @@ from typing import Annotated
 
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from lxml import etree
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -29,6 +29,7 @@ from automx.renderers.autodiscover import (
 )
 from automx.renderers.autodiscover_v2 import AutodiscoverV2Error, render_autodiscover_v2
 from automx.renderers.mobileconfig import MobileconfigRenderError, render_mobileconfig
+from automx.renderers.mobileconfig_form import render_mobileconfig_form
 from automx.renderers.pacc import PaccRenderError, render_pacc
 from automx.requests import RequestContractError, parse_form_request, parse_xml_request
 from automx.settings import AppSettings
@@ -222,6 +223,31 @@ def create_app(
     @app.get("/health/ready", include_in_schema=False)
     async def health_ready() -> dict[str, str]:
         return {"status": "ready"}
+
+    @app.get("/", include_in_schema=False)
+    async def index() -> RedirectResponse:
+        return RedirectResponse(url="/mobileconfig")
+
+    @app.get(
+        "/mobileconfig",
+        tags=["Mobileconfig"],
+        summary="Show the password-free Apple Mail configuration form",
+        operation_id="get_mobileconfig_form",
+        response_class=HTMLResponse,
+    )
+    async def mobileconfig_form() -> HTMLResponse:
+        return HTMLResponse(
+            content=render_mobileconfig_form(),
+            headers={
+                "Cache-Control": "no-store",
+                "Content-Security-Policy": (
+                    "default-src 'none'; form-action 'self'; base-uri 'none'; "
+                    "frame-ancestors 'none'"
+                ),
+                "Referrer-Policy": "no-referrer",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
 
     @app.get(
         "/.well-known/user-agent-configuration.json",
