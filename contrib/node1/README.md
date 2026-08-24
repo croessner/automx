@@ -35,7 +35,9 @@ and OpenAPI routes remain available.
 Open `https://autoconfig.roessner-net.de/mobileconfig` in Safari to request a
 password-free Apple Mail configuration profile. The service root redirects to
 the same form. It accepts only the mail address and an optional display name;
-the device asks for account credentials when it first connects.
+the device asks for account credentials when it first connects. The interface
+offers English and German, plus persistent auto, light, and dark themes. Its
+self-hosted CSS and JavaScript use no CDN or third-party browser service.
 
 ## Deployment
 

@@ -62,6 +62,8 @@ def test_mobileconfig_browser_form_is_password_free_and_root_redirects(tmp_path:
 
     root = client.get("/")
     form = client.get("/mobileconfig")
+    stylesheet = client.get("/mobileconfig.css")
+    script = client.get("/mobileconfig.js")
 
     assert root.status_code == 200
     assert root.url.path == "/mobileconfig"
@@ -69,13 +71,41 @@ def test_mobileconfig_browser_form_is_password_free_and_root_redirects(tmp_path:
     assert form.status_code == 200
     assert form.headers["content-type"].startswith("text/html")
     assert form.headers["cache-control"] == "no-store"
+    assert "style-src 'self'" in form.headers["content-security-policy"]
+    assert "script-src 'self'" in form.headers["content-security-policy"]
     assert "form-action 'self'" in form.headers["content-security-policy"]
     assert form.headers["referrer-policy"] == "no-referrer"
     assert form.headers["x-content-type-options"] == "nosniff"
     assert 'action="/mobileconfig"' in form.text
+    assert 'href="/mobileconfig.css"' in form.text
+    assert 'src="/mobileconfig.js"' in form.text
+    assert "data-theme-select" in form.text
+    assert "data-language-select" in form.text
+    assert '<option value="de">Deutsch</option>' in form.text
+    assert '<option value="en">English</option>' in form.text
+    assert '<option value="auto">Auto</option>' in form.text
+    assert '<option value="light">Light</option>' in form.text
+    assert '<option value="dark">Dark</option>' in form.text
     assert 'name="emailaddress"' in form.text
     assert 'name="cn"' in form.text
     assert "password" not in form.text.lower()
+    assert stylesheet.status_code == 200
+    assert stylesheet.headers["content-type"].startswith("text/css")
+    assert stylesheet.headers["x-content-type-options"] == "nosniff"
+    assert "font-family" in stylesheet.text
+    assert "--bg: #f4f7f6" in stylesheet.text
+    assert "--accent: #087f5b" in stylesheet.text
+    assert ':root[data-theme="dark"]' in stylesheet.text
+    assert "@media (prefers-color-scheme: dark)" in stylesheet.text
+    assert script.status_code == 200
+    assert script.headers["content-type"].startswith("text/javascript")
+    assert script.headers["x-content-type-options"] == "nosniff"
+    assert 'localStorage.getItem("automx-theme")' in script.text
+    assert 'localStorage.getItem("automx-language")' in script.text
+    assert "document.documentElement.dataset.theme" in script.text
+    assert "document.documentElement.lang = language" in script.text
+    assert '"de": {' in script.text
+    assert '"en": {' in script.text
 
 
 def test_mobileconfig_rejects_passwords_and_ambiguous_forms(tmp_path: Path) -> None:

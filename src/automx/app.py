@@ -29,7 +29,11 @@ from automx.renderers.autodiscover import (
 )
 from automx.renderers.autodiscover_v2 import AutodiscoverV2Error, render_autodiscover_v2
 from automx.renderers.mobileconfig import MobileconfigRenderError, render_mobileconfig
-from automx.renderers.mobileconfig_form import render_mobileconfig_form
+from automx.renderers.mobileconfig_form import (
+    render_mobileconfig_form,
+    render_mobileconfig_script,
+    render_mobileconfig_styles,
+)
 from automx.renderers.pacc import PaccRenderError, render_pacc
 from automx.requests import RequestContractError, parse_form_request, parse_xml_request
 from automx.settings import AppSettings
@@ -241,10 +245,32 @@ def create_app(
             headers={
                 "Cache-Control": "no-store",
                 "Content-Security-Policy": (
-                    "default-src 'none'; form-action 'self'; base-uri 'none'; "
-                    "frame-ancestors 'none'"
+                    "default-src 'none'; style-src 'self'; script-src 'self'; "
+                    "form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
                 ),
                 "Referrer-Policy": "no-referrer",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
+
+    @app.get("/mobileconfig.css", include_in_schema=False)
+    async def mobileconfig_styles() -> Response:
+        return Response(
+            content=render_mobileconfig_styles(),
+            media_type="text/css",
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
+
+    @app.get("/mobileconfig.js", include_in_schema=False)
+    async def mobileconfig_script() -> Response:
+        return Response(
+            content=render_mobileconfig_script(),
+            media_type="text/javascript",
+            headers={
+                "Cache-Control": "public, max-age=3600",
                 "X-Content-Type-Options": "nosniff",
             },
         )
