@@ -1,16 +1,41 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 import pytest
 
 from automx.cli import build_parser, main
+from automx.commands import serve
 from automx.commands.openapi import schema, serialized_schema
 from automx.commands.probe import ProbeClient
 
 ROOT = Path(__file__).parents[1]
 CONFIG = ROOT / "contrib/e2e/automx.conf"
+
+
+def test_serve_uses_only_the_route_template_access_log(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(_app: object, **kwargs: object) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setattr(serve.uvicorn, "run", fake_run)
+
+    assert serve.run(
+        argparse.Namespace(config=str(CONFIG), host="127.0.0.1", port=8000)
+    ) == 0
+    assert captured["access_log"] is False
+    log_config = captured["log_config"]
+    assert isinstance(log_config, dict)
+    assert log_config["loggers"]["automx.access"] == {
+        "handlers": ["default"],
+        "level": "INFO",
+        "propagate": False,
+    }
 
 
 def test_top_level_help_is_english_and_lists_modular_commands() -> None:
@@ -136,6 +161,32 @@ def test_openapi_is_valid_deterministic_and_marks_experimental_routes(
         "/autodiscover/autodiscover.json/v1.0/{email_address}"
     ]["get"]
     assert path_operation["x-automx-status"] == "experimental"
+    assert set(
+        document["paths"]["/mail/config-v1.1.xml"]["get"]["responses"]["200"][
+            "content"
+        ]
+    ) == {"text/xml"}
+    assert set(
+        document["paths"]["/autodiscover/autodiscover.xml"]["post"]["responses"][
+            "200"
+        ]["content"]
+    ) == {"text/xml"}
+    assert set(
+        document["paths"]["/mobileconfig"]["post"]["responses"]["200"]["content"]
+    ) == {"application/x-apple-aspen-config"}
+    validation_paths = (
+        "/mail/config-v1.1.xml",
+        "/.well-known/autoconfig/mail/config-v1.1.xml",
+        "/autodiscover/autodiscover.json/v1.0/{email_address}",
+        "/autodiscover/autodiscover.json",
+    )
+    for path in validation_paths:
+        operation = document["paths"][path]["get"]
+        assert "422" not in operation["responses"]
+        assert set(operation["responses"]["4XX"]["content"]) == {"application/json"}
+    mobileconfig_responses = document["paths"]["/mobileconfig"]["post"]["responses"]
+    assert set(mobileconfig_responses["400"]["content"]) == {"application/json"}
+    assert set(mobileconfig_responses["422"]["content"]) == {"application/json"}
     operation_ids = [
         operation["operationId"]
         for path in document["paths"].values()

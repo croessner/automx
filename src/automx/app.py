@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -44,6 +44,39 @@ from automx.static_documents import (
 )
 
 _ACCESS_LOG = logging.getLogger("automx.access")
+
+
+_CONTRACT_ERROR_RESPONSE: dict[str, Any] = {
+    "description": "Request contract violation",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "error": {"type": "string"},
+                    "message": {"type": "string"},
+                },
+                "required": ["error", "message"],
+            }
+        }
+    },
+}
+_UNSUPPORTED_CONFIGURATION_RESPONSE: dict[str, Any] = {
+    "description": "Configuration cannot be represented by this protocol",
+    "content": _CONTRACT_ERROR_RESPONSE["content"],
+}
+
+
+class XMLResponse(Response):
+    """Document an XML success response without changing runtime bytes."""
+
+    media_type = "text/xml"
+
+
+class MobileconfigResponse(Response):
+    """Document an Apple configuration profile response."""
+
+    media_type = "application/x-apple-aspen-config"
 
 
 class SafeAccessLogMiddleware:
@@ -297,12 +330,16 @@ def create_app(
         tags=["Autoconfig"],
         summary="Get Mail Autoconfig 1.2 through the traditional path",
         operation_id="get_autoconfig_traditional",
+        response_class=XMLResponse,
+        responses={"4XX": _CONTRACT_ERROR_RESPONSE},
     )
     @app.get(
         "/.well-known/autoconfig/mail/config-v1.1.xml",
         tags=["Autoconfig"],
         summary="Get Mail Autoconfig 1.2 through the well-known path",
         operation_id="get_autoconfig_well_known",
+        response_class=XMLResponse,
+        responses={"4XX": _CONTRACT_ERROR_RESPONSE},
     )
     async def autoconfig(
         request: Request,
@@ -331,6 +368,7 @@ def create_app(
         tags=["Autodiscover"],
         summary="Resolve an Outlook or MobileSync Autodiscover request",
         operation_id="post_autodiscover_xml",
+        response_class=XMLResponse,
     )
     async def autodiscover(request: Request) -> Response:
         try:
@@ -403,6 +441,7 @@ def create_app(
         summary="Resolve an experimental Autodiscover v2 path request",
         operation_id="get_autodiscover_v2_path",
         openapi_extra={"x-automx-status": "experimental"},
+        responses={"4XX": _CONTRACT_ERROR_RESPONSE},
     )
     async def autodiscover_v2_path(
         request: Request,
@@ -419,6 +458,7 @@ def create_app(
         summary="Resolve an experimental Autodiscover v2 query request",
         operation_id="get_autodiscover_v2_query",
         openapi_extra={"x-automx-status": "experimental"},
+        responses={"4XX": _CONTRACT_ERROR_RESPONSE},
     )
     async def autodiscover_v2_query(
         request: Request,
@@ -434,6 +474,11 @@ def create_app(
         tags=["Mobileconfig"],
         summary="Create a password-free Apple Mail configuration profile",
         operation_id="post_mobileconfig",
+        response_class=MobileconfigResponse,
+        responses={
+            400: _CONTRACT_ERROR_RESPONSE,
+            422: _UNSUPPORTED_CONFIGURATION_RESPONSE,
+        },
     )
     async def mobileconfig(request: Request) -> Response:
         form = await parse_form_request(request, max_bytes=settings.max_request_bytes)
@@ -453,6 +498,12 @@ def create_app(
             )
         common_name_values = form.get("cn", ())
         common_name = common_name_values[0] if common_name_values else None
+        if common_name and not common_name.isprintable():
+            raise RequestContractError(
+                400,
+                "invalid_form",
+                "cn contains control characters",
+            )
         profile = repository.resolve(email_values[0])
         body = load_static_mobileconfig(profile) or render_mobileconfig(
             profile, common_name=common_name or None

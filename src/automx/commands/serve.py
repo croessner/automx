@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 
 import uvicorn
+from uvicorn.config import LOGGING_CONFIG
 
 from automx.app import create_app
 from automx.commands.common import DEFAULT_CONFIG, repository
@@ -22,11 +24,19 @@ def run(args: argparse.Namespace) -> int:
     if not 1 <= args.port <= 65_535:
         raise ValueError("--port must be between 1 and 65535")
     config_repository = repository(args.config)
+    log_config = deepcopy(LOGGING_CONFIG)
+    log_config["loggers"]["automx.access"] = {
+        "handlers": ["default"],
+        "level": "INFO",
+        "propagate": False,
+    }
     uvicorn.run(
         create_app(repository=config_repository),
         host=args.host,
         port=args.port,
         proxy_headers=False,
         server_header=False,
+        access_log=False,
+        log_config=log_config,
     )
     return 0

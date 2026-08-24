@@ -86,6 +86,7 @@ def test_mobileconfig_browser_form_is_password_free_and_root_redirects(tmp_path:
     assert '<option value="auto">Auto</option>' in form.text
     assert '<option value="light">Light</option>' in form.text
     assert '<option value="dark">Dark</option>' in form.text
+    assert 'data-theme-select aria-label=' not in form.text
     assert 'name="emailaddress"' in form.text
     assert 'name="cn"' in form.text
     assert "password" not in form.text.lower()
@@ -96,6 +97,9 @@ def test_mobileconfig_browser_form_is_password_free_and_root_redirects(tmp_path:
     assert "--bg: #f4f7f6" in stylesheet.text
     assert "--accent: #087f5b" in stylesheet.text
     assert ':root[data-theme="dark"]' in stylesheet.text
+    assert ':root[data-theme="light"]' in stylesheet.text
+    assert ':root[data-theme="light"] {\n  color-scheme: light;' in stylesheet.text
+    assert ':root[data-theme="dark"] {\n  color-scheme: dark;' in stylesheet.text
     assert "@media (prefers-color-scheme: dark)" in stylesheet.text
     assert script.status_code == 200
     assert script.headers["content-type"].startswith("text/javascript")
@@ -106,6 +110,8 @@ def test_mobileconfig_browser_form_is_password_free_and_root_redirects(tmp_path:
     assert "document.documentElement.lang = language" in script.text
     assert '"de": {' in script.text
     assert '"en": {' in script.text
+    assert 'copy.colorScheme' not in script.text
+    assert 'setAttribute("aria-label", copy.colorScheme)' not in script.text
 
 
 def test_mobileconfig_rejects_passwords_and_ambiguous_forms(tmp_path: Path) -> None:
@@ -126,3 +132,11 @@ def test_mobileconfig_rejects_passwords_and_ambiguous_forms(tmp_path: Path) -> N
     )
     assert duplicate.status_code == 400
     assert duplicate.json()["error"] == "invalid_form"
+
+    control_character = client.post(
+        "/mobileconfig",
+        content="emailaddress=user%40example.test&cn=Example%00User",
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+    assert control_character.status_code == 400
+    assert control_character.json()["error"] == "invalid_form"

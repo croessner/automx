@@ -16,6 +16,15 @@ deployment:
 - OAuth2 and TLS-protected password authentication;
 - provider display names `Rößner-Network-Solutions` and `R.N.S.`.
 
+The configured domain set is the exact live Mailstack relay-domain contract,
+not merely a sample of DNS zones. The 2026-08-24 inventory found 33 forward
+zones whose MX points at `mx.roessner-net.de`; a target-side PfxHTTP
+`relay_domains` lookup accepted 26 of them. Those 26 domains are pinned in
+`automx.conf`, the three Traefik host rules, `dns-plan.txt`, and a regression
+test. The seven MX zones `roessner.cloud`, `dsgvo-roessner.de`, `nauthilus.de`,
+`authserv.me`, `roessner.website`, `ra-roessner-merle.com`, and `authserv.net`
+are intentionally excluded because the live mail service did not accept them.
+
 The historical deployment contained the stale issuer
 `https://oauth.authserv.me:4444`. The production profile instead uses the live
 Nauthilus issuer `https://login.authserv.me`, whose discovery document exposes
@@ -64,6 +73,10 @@ The node1 rollout keeps direct A/AAAA records on the canonical
 names use CNAME aliases, while every SRV record targets the canonical A/AAAA
 host directly. `dns-plan.txt` contains the exact PACC TXT digest rendered from
 this configuration and is checked by the test suite.
+
+Never create a self-referential CNAME for the canonical service host. In the
+`roessner-net.de` zone, `autoconfig.roessner-net.de` therefore retains its
+direct A/AAAA records; only the other protocol host names are aliases.
 
 After deployment, verify all protocols with synthetic addresses only:
 

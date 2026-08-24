@@ -25,7 +25,7 @@ def render_mobileconfig_form() -> str:
         </select>
       </label>
       <label class="theme-control"><span data-i18n="appearance">Appearance</span>
-        <select data-theme-select aria-label="Color scheme">
+        <select data-theme-select>
           <option value="auto">Auto</option>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
@@ -72,7 +72,12 @@ def render_mobileconfig_styles() -> str:
   --shadow: 0 18px 50px rgb(20 50 40 / 9%);
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0e1513;
   --surface: #17201d;
   --text: #eff8f4;
@@ -279,7 +284,6 @@ def render_mobileconfig_script() -> str:
       pageTitle: "Apple-Mail-Konfiguration · automx",
       language: "Sprache",
       appearance: "Darstellung",
-      colorScheme: "Farbschema",
       eyebrow: "Apple Mail",
       heading: "Konto konfigurieren",
       intro: "Gib die Mailadresse und optional den Anzeigenamen für dieses Gerät ein.",
@@ -296,7 +300,6 @@ def render_mobileconfig_script() -> str:
       pageTitle: "Apple Mail configuration · automx",
       language: "Language",
       appearance: "Appearance",
-      colorScheme: "Color scheme",
       eyebrow: "Apple Mail",
       heading: "Configure your account",
       intro: "Enter the mail address and optional display name for this device.",
@@ -335,7 +338,6 @@ def render_mobileconfig_script() -> str:
       select.setAttribute("aria-label", copy.language);
     });
     document.querySelectorAll("[data-theme-select]").forEach((select) => {
-      select.setAttribute("aria-label", copy.colorScheme);
       select.querySelector('option[value="auto"]').textContent = copy.auto;
       select.querySelector('option[value="light"]').textContent = copy.light;
       select.querySelector('option[value="dark"]').textContent = copy.dark;
