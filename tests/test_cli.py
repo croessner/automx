@@ -92,6 +92,36 @@ def test_dns_json_is_machine_readable_and_explicitly_read_only(
     assert {record["type"] for record in document["records"]} == {"CNAME", "SRV", "TXT"}
 
 
+def test_dns_records_omit_a_self_referential_canonical_cname(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "dns",
+                "records",
+                "--config",
+                str(CONFIG),
+                "--domain",
+                "example.test",
+                "--service-host",
+                "autoconfig.example.test",
+                "--format",
+                "json",
+            ]
+        )
+        == 0
+    )
+    document = json.loads(capsys.readouterr().out)
+    records = document["records"]
+    assert len(records) == 4
+    assert not any(
+        record["name"] == "autoconfig.example.test"
+        and record["type"] == "CNAME"
+        for record in records
+    )
+
+
 def test_openapi_is_valid_deterministic_and_marks_experimental_routes(
     tmp_path: Path,
 ) -> None:

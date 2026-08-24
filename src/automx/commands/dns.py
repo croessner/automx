@@ -41,12 +41,20 @@ def deployment_records(
     selected, body = pacc_bytes(config_path, domain)
     selected = _hostname(selected, option="--domain")
     target = _hostname(service_host, option="--service-host")
-    records = (
-        DNSRecord(f"autoconfig.{selected}", "CNAME", f"{target}."),
-        DNSRecord(f"autodiscover.{selected}", "CNAME", f"{target}."),
-        DNSRecord(f"_autodiscover._tcp.{selected}", "SRV", f"0 0 443 {target}."),
-        DNSRecord(f"ua-auto-config.{selected}", "CNAME", f"{target}."),
-        DNSRecord(f"_ua-auto-config.{selected}", "TXT", pacc_digest_record(body)),
+    records = tuple(
+        record
+        for record in (
+            DNSRecord(f"autoconfig.{selected}", "CNAME", f"{target}."),
+            DNSRecord(f"autodiscover.{selected}", "CNAME", f"{target}."),
+            DNSRecord(f"_autodiscover._tcp.{selected}", "SRV", f"0 0 443 {target}."),
+            DNSRecord(f"ua-auto-config.{selected}", "CNAME", f"{target}."),
+            DNSRecord(
+                f"_ua-auto-config.{selected}",
+                "TXT",
+                pacc_digest_record(body),
+            ),
+        )
+        if record.type != "CNAME" or record.name != target
     )
     return selected, records
 
