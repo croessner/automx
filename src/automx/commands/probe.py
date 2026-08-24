@@ -155,6 +155,7 @@ def probe_autoconfig(client: ProbeClient, email: str, _experimental: bool) -> li
 def probe_autodiscover(
     client: ProbeClient, email: str, experimental: bool
 ) -> list[ProbeResult]:
+    mobile_sync_configured = True
     for mobile in (False, True):
         root = _xml(
             client.request(
@@ -166,6 +167,13 @@ def probe_autodiscover(
         expected = "MobileSync" if mobile else "IMAP"
         types = {value for value in root.itertext() if value}
         if expected not in types:
+            if (
+                mobile
+                and root.findtext(".//{*}ErrorCode") == "602"
+                and root.findtext(".//{*}Message") == "Configuration Error"
+            ):
+                mobile_sync_configured = False
+                continue
             raise ValueError(f"Autodiscover response does not contain {expected}")
 
     unsafe = _xml(
@@ -193,7 +201,15 @@ def probe_autodiscover(
         raise ValueError("mobileconfig response embeds a password")
 
     results = [
-        ProbeResult("autodiscover", "passed", "Outlook and MobileSync contracts passed"),
+        ProbeResult(
+            "autodiscover",
+            "passed",
+            (
+                "Outlook contract passed; MobileSync is not configured"
+                if not mobile_sync_configured
+                else "Outlook and MobileSync contracts passed"
+            ),
+        ),
         ProbeResult("mobileconfig", "passed", "Apple profile is password-free"),
     ]
     if experimental:

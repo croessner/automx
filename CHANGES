@@ -11,6 +11,8 @@
   digest-pinned, hardened node1 production deployment contract
 - Prepare the node1 profile for Nauthilus OAuth discovery and future DCR
   publication without inventing a registration endpoint
+- Let protocol probes validate the Microsoft 602 contract when MobileSync is
+  intentionally not configured
 - Replace the historical automx-test shell client with automx probe commands
 
 * Version 1.1.2

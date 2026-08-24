@@ -60,11 +60,10 @@ After deployment, verify all protocols with synthetic addresses only:
 
 ```console
 automx config validate --config automx.conf --domain roessner-net.de
-automx probe all --base-url https://autoconfig.roessner-net.de \
-  --email-address probe@roessner-net.de \
+automx probe all --base-url https://ua-auto-config.roessner-net.de \
+  --email probe@roessner-net.de \
   --domain roessner-net.de \
-  --config automx.conf \
-  --pacc-base-url https://ua-auto-config.roessner-net.de
+  --config automx.conf
 ```
 
 Repeat the probe for every configured mail domain and use that domain's

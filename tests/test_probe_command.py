@@ -43,8 +43,8 @@ class FakeOpener:
 
 
 class LocalProbeClient:
-    def __init__(self) -> None:
-        self.client = TestClient(create_app(config_path=CONFIG))
+    def __init__(self, config: Path = CONFIG) -> None:
+        self.client = TestClient(create_app(config_path=config))
 
     def request(
         self,
@@ -76,6 +76,15 @@ def test_every_remote_probe_contract_against_the_real_asgi_app() -> None:
         "autodiscover-v2",
     ]
     assert "v=UAAC1" in probe.probe_pacc(client, "user@example.test", False)[0].detail
+
+
+def test_autodiscover_probe_accepts_the_schema_error_when_mobile_sync_is_absent() -> None:
+    client: Any = LocalProbeClient(ROOT / "contrib/node1/automx.conf")
+
+    results = probe.probe_autodiscover(client, "probe@roessner-net.de", False)
+
+    assert results[0].status == "passed"
+    assert "not configured" in results[0].detail
 
 
 def test_probe_all_cli_reports_json_and_local_pacc_parity(
