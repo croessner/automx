@@ -13,15 +13,17 @@ deployment:
 - IMAPS at `mail.roessner-net.de:993`;
 - SMTPS at `mail.roessner-net.de:465`;
 - full email address as the authentication identity;
+- OAuth2 and TLS-protected password authentication;
 - provider display names `Rößner-Network-Solutions` and `R.N.S.`.
 
-The historical deployment advertised the issuer
-`https://oauth.authserv.me:4444`, but that issuer was unreachable during the
-migration. OAuth is therefore not advertised by the production profile. Add
-the verified issuer, endpoints, scopes, and `oauth2` authentication method only
-after the issuer discovery document and DCR policy are operational again.
-automx never acts as a registration endpoint and never publishes a client
-secret.
+The historical deployment contained the stale issuer
+`https://oauth.authserv.me:4444`. The production profile instead uses the live
+Nauthilus issuer `https://login.authserv.me`, whose discovery document exposes
+the authorization and token endpoints, PKCE S256, public-client authentication,
+and the configured scopes. The current discovery document has no
+`registration_endpoint`; this prepares consumers to discover DCR from the
+issuer as soon as a future Nauthilus rollout publishes it. automx never acts as
+a registration endpoint, invents one, or publishes a client secret.
 
 Autodiscover v2 remains disabled because this deployment has no configured
 Exchange REST, EWS, ActiveSync, Graph, OAB, or Actions endpoint. The standard

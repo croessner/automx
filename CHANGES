@@ -9,6 +9,8 @@
   Docker E2E, SPDX/CycloneDX SBOMs, and security scan gates
 - Omit invalid self-referential CNAMEs from generated DNS plans and add a
   digest-pinned, hardened node1 production deployment contract
+- Prepare the node1 profile for Nauthilus OAuth discovery and future DCR
+  publication without inventing a registration endpoint
 - Replace the historical automx-test shell client with automx probe commands
 
 * Version 1.1.2

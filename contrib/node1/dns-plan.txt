@@ -4,34 +4,34 @@
 autodiscover.roessner-net.de. 300 IN CNAME autoconfig.roessner-net.de.
 _autodiscover._tcp.roessner-net.de. 300 IN SRV 0 0 443 autoconfig.roessner-net.de.
 ua-auto-config.roessner-net.de. 300 IN CNAME autoconfig.roessner-net.de.
-_ua-auto-config.roessner-net.de. 300 IN TXT "v=UAAC1; a=sha256; d=A2bnWoLy43DFcY8OuRbqe0yDhgcnerDHBeVS9g63ld4="
+_ua-auto-config.roessner-net.de. 300 IN TXT "v=UAAC1; a=sha256; d=Bhvb5C7ITzd4DQtx+lT/9SwsBHVSDzvMwujugIBJVCo="
 ; domain=alltagswahnsinn.de
 autoconfig.alltagswahnsinn.de. 300 IN CNAME autoconfig.roessner-net.de.
 autodiscover.alltagswahnsinn.de. 300 IN CNAME autoconfig.roessner-net.de.
 _autodiscover._tcp.alltagswahnsinn.de. 300 IN SRV 0 0 443 autoconfig.roessner-net.de.
 ua-auto-config.alltagswahnsinn.de. 300 IN CNAME autoconfig.roessner-net.de.
-_ua-auto-config.alltagswahnsinn.de. 300 IN TXT "v=UAAC1; a=sha256; d=A2bnWoLy43DFcY8OuRbqe0yDhgcnerDHBeVS9g63ld4="
+_ua-auto-config.alltagswahnsinn.de. 300 IN TXT "v=UAAC1; a=sha256; d=Bhvb5C7ITzd4DQtx+lT/9SwsBHVSDzvMwujugIBJVCo="
 ; domain=alsfeld.email
 autoconfig.alsfeld.email. 300 IN CNAME autoconfig.roessner-net.de.
 autodiscover.alsfeld.email. 300 IN CNAME autoconfig.roessner-net.de.
 _autodiscover._tcp.alsfeld.email. 300 IN SRV 0 0 443 autoconfig.roessner-net.de.
 ua-auto-config.alsfeld.email. 300 IN CNAME autoconfig.roessner-net.de.
-_ua-auto-config.alsfeld.email. 300 IN TXT "v=UAAC1; a=sha256; d=A2bnWoLy43DFcY8OuRbqe0yDhgcnerDHBeVS9g63ld4="
+_ua-auto-config.alsfeld.email. 300 IN TXT "v=UAAC1; a=sha256; d=Bhvb5C7ITzd4DQtx+lT/9SwsBHVSDzvMwujugIBJVCo="
 ; domain=ra-roessner-merle.de
 autoconfig.ra-roessner-merle.de. 300 IN CNAME autoconfig.roessner-net.de.
 autodiscover.ra-roessner-merle.de. 300 IN CNAME autoconfig.roessner-net.de.
 _autodiscover._tcp.ra-roessner-merle.de. 300 IN SRV 0 0 443 autoconfig.roessner-net.de.
 ua-auto-config.ra-roessner-merle.de. 300 IN CNAME autoconfig.roessner-net.de.
-_ua-auto-config.ra-roessner-merle.de. 300 IN TXT "v=UAAC1; a=sha256; d=A2bnWoLy43DFcY8OuRbqe0yDhgcnerDHBeVS9g63ld4="
+_ua-auto-config.ra-roessner-merle.de. 300 IN TXT "v=UAAC1; a=sha256; d=Bhvb5C7ITzd4DQtx+lT/9SwsBHVSDzvMwujugIBJVCo="
 ; domain=roessner-net.com
 autoconfig.roessner-net.com. 300 IN CNAME autoconfig.roessner-net.de.
 autodiscover.roessner-net.com. 300 IN CNAME autoconfig.roessner-net.de.
 _autodiscover._tcp.roessner-net.com. 300 IN SRV 0 0 443 autoconfig.roessner-net.de.
 ua-auto-config.roessner-net.com. 300 IN CNAME autoconfig.roessner-net.de.
-_ua-auto-config.roessner-net.com. 300 IN TXT "v=UAAC1; a=sha256; d=A2bnWoLy43DFcY8OuRbqe0yDhgcnerDHBeVS9g63ld4="
+_ua-auto-config.roessner-net.com. 300 IN TXT "v=UAAC1; a=sha256; d=Bhvb5C7ITzd4DQtx+lT/9SwsBHVSDzvMwujugIBJVCo="
 ; domain=roessner.email
 autoconfig.roessner.email. 300 IN CNAME autoconfig.roessner-net.de.
 autodiscover.roessner.email. 300 IN CNAME autoconfig.roessner-net.de.
 _autodiscover._tcp.roessner.email. 300 IN SRV 0 0 443 autoconfig.roessner-net.de.
 ua-auto-config.roessner.email. 300 IN CNAME autoconfig.roessner-net.de.
-_ua-auto-config.roessner.email. 300 IN TXT "v=UAAC1; a=sha256; d=A2bnWoLy43DFcY8OuRbqe0yDhgcnerDHBeVS9g63ld4="
+_ua-auto-config.roessner.email. 300 IN TXT "v=UAAC1; a=sha256; d=Bhvb5C7ITzd4DQtx+lT/9SwsBHVSDzvMwujugIBJVCo="
