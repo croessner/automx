@@ -11,6 +11,7 @@ from automx.commands import configuration, dns, openapi, pacc, probe, render, se
 from automx.configuration import ConfigurationError
 from automx.renderers.autoconfig import AutoconfigRenderError
 from automx.renderers.autodiscover import AutodiscoverRenderError
+from automx.renderers.mobileconfig import MobileconfigRenderError
 from automx.renderers.pacc import PaccRenderError
 from automx.static_documents import StaticDocumentError
 
@@ -42,6 +43,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         AutoconfigRenderError,
         AutodiscoverRenderError,
         ConfigurationError,
+        MobileconfigRenderError,
         PaccRenderError,
         StaticDocumentError,
         OSError,

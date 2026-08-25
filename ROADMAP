@@ -7,8 +7,8 @@ automx roadmap
   interoperability requirement exists.
 - Add real-client interoperability fixtures separately from the deterministic,
   dependency-free baseline E2E stack.
-- Evaluate signed Mobileconfig support only with an in-process, secret-safe key
-  abstraction and explicit operator demand.
+- Evaluate external key-provider integration for Mobileconfig only when it can
+  preserve the in-process sign/verify contract and exact-byte CLI boundary.
 
 DNS mutation, OAuth client registration, identity-provider behavior, and
 mailbox-login testing remain outside automx's product boundary.

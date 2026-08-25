@@ -18,6 +18,7 @@ from automx.configuration import ConfigurationError, ConfigurationRepository
 from automx.documents import (
     autoconfig_document,
     autodiscover_document,
+    mobileconfig_document,
     pacc_document,
 )
 from automx.renderers.autoconfig import AutoconfigRenderError
@@ -31,7 +32,7 @@ from automx.renderers.autodiscover import (
     render_autodiscover_error,
 )
 from automx.renderers.autodiscover_v2 import AutodiscoverV2Error, render_autodiscover_v2
-from automx.renderers.mobileconfig import MobileconfigRenderError, render_mobileconfig
+from automx.renderers.mobileconfig import MobileconfigRenderError
 from automx.renderers.mobileconfig_form import (
     render_mobileconfig_form,
     render_mobileconfig_script,
@@ -40,10 +41,7 @@ from automx.renderers.mobileconfig_form import (
 from automx.renderers.pacc import PaccRenderError
 from automx.requests import RequestContractError, parse_form_request, parse_xml_request
 from automx.settings import AppSettings
-from automx.static_documents import (
-    StaticDocumentError,
-    load_static_mobileconfig,
-)
+from automx.static_documents import StaticDocumentError
 
 _ACCESS_LOG = logging.getLogger("automx.access")
 
@@ -500,9 +498,10 @@ def create_app(
                 "invalid_form",
                 "cn contains control characters",
             )
-        profile = repository.resolve(email_values[0])
-        body = load_static_mobileconfig(profile) or render_mobileconfig(
-            profile, common_name=common_name or None
+        body = mobileconfig_document(
+            repository,
+            email_values[0],
+            common_name=common_name or None,
         )
         return Response(
             content=body,

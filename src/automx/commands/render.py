@@ -9,6 +9,7 @@ from automx.commands.common import DEFAULT_CONFIG, repository, selected_domain
 from automx.documents import (
     autoconfig_document,
     autodiscover_document,
+    mobileconfig_document_result,
     pacc_document,
 )
 from automx.renderers.autodiscover import AutodiscoverSchema
@@ -41,6 +42,22 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     autodiscover.set_defaults(handler=run_autodiscover)
 
+    mobileconfig = commands.add_parser(
+        "mobileconfig",
+        help="render a password-free Apple Mail configuration profile",
+    )
+    _add_email_options(mobileconfig)
+    mobileconfig.add_argument(
+        "--common-name",
+        help="optional display name for the generated mail account",
+    )
+    mobileconfig.add_argument(
+        "--signature-status",
+        action="store_true",
+        help="report CMS integrity to stderr without changing profile bytes",
+    )
+    mobileconfig.set_defaults(handler=run_mobileconfig)
+
     pacc = commands.add_parser("pacc", help="render PACC-03 JSON for a domain")
     pacc.add_argument("--config", default=DEFAULT_CONFIG, help="path to automx.conf")
     pacc.add_argument("--domain", required=True, help="configured domain to render")
@@ -72,6 +89,25 @@ def run_autodiscover(args: argparse.Namespace) -> int:
         else AutodiscoverSchema.MOBILE
     )
     return _write(autodiscover_document(repository(args.config), args.email, schema))
+
+
+def run_mobileconfig(args: argparse.Namespace) -> int:
+    result = mobileconfig_document_result(
+        repository(args.config),
+        args.email,
+        common_name=args.common_name,
+    )
+    if args.signature_status:
+        if result.signature.signed:
+            print(
+                "automx: mobileconfig signature: valid; "
+                f"signer-sha256={result.signature.signer_sha256}; "
+                "trust: device-dependent",
+                file=sys.stderr,
+            )
+        else:
+            print("automx: mobileconfig signature: unsigned", file=sys.stderr)
+    return _write(result.body)
 
 
 def run_pacc(args: argparse.Namespace) -> int:

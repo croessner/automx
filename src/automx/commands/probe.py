@@ -18,6 +18,7 @@ from typing import Any, cast
 from lxml import etree
 
 from automx.commands.pacc import pacc_bytes
+from automx.mobileconfig_signing import inspect_mobileconfig
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,13 +192,14 @@ def probe_autodiscover(
     form = urllib.parse.urlencode(
         {"_mobileconfig": "true", "cn": "automx Probe", "emailaddress": email}
     ).encode("ascii")
-    mobileconfig: Any = plistlib.loads(
+    mobileconfig_inspection = inspect_mobileconfig(
         client.request(
             "/mobileconfig",
             body=form,
             content_type="application/x-www-form-urlencoded",
         )
     )
+    mobileconfig: Any = plistlib.loads(mobileconfig_inspection.content)
     mail_payload = mobileconfig["PayloadContent"][0]
     if "IncomingPassword" in mail_payload or "OutgoingPassword" in mail_payload:
         raise ValueError("mobileconfig response embeds a password")
@@ -212,7 +214,15 @@ def probe_autodiscover(
                 else "Outlook and MobileSync contracts passed"
             ),
         ),
-        ProbeResult("mobileconfig", "passed", "Apple profile is password-free"),
+        ProbeResult(
+            "mobileconfig",
+            "passed",
+            (
+                "Apple profile is password-free; CMS signature integrity is valid"
+                if mobileconfig_inspection.signed
+                else "Apple profile is password-free and unsigned"
+            ),
+        ),
     ]
     if experimental:
         query = urllib.parse.urlencode({"Email": email, "Protocol": "EWS"})

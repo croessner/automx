@@ -15,6 +15,11 @@ normalized DNS drift/error handling, and container configuration. Resolver
 unit tests use an injected in-memory implementation and never depend on public
 DNS.
 
+Mobileconfig tests cover password-free plain profiles, in-process CMS signing,
+key/certificate matching and permissions, signature tampering, preservation of
+valid pre-signed static profiles, CLI byte/status separation, and signed remote
+probe handling.
+
 `make e2e` builds `contrib/e2e/compose.yaml`, starts the service as UID 10001 on
 a read-only filesystem, and invokes `automx probe all`. The stack uses synthetic
 `.test` data and no external DNS, mail server, or identity provider. A local

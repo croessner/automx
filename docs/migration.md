@@ -44,6 +44,13 @@ transport now requires `allow_insecure=yes`. OAuth client secrets are rejected,
 mobileconfig never embeds passwords, dynamic SQL interpolation is rejected, and
 unsafe LDAP certificate modes are not accepted.
 
+Historical `sign_mobileconfig`, `sign_cert`, and `sign_key` settings are not
+silently reused. Configure the modern process-wide `[automx]`
+`mobileconfig_sign*` options described in the configuration reference. The new
+implementation performs bounded in-process CMS signing, requires owner-only key
+material, verifies every produced signature, and never falls back to an
+unsigned profile when signing is enabled.
+
 The historical `filter` backend and built-in memcache failure counter are not
 carried forward: arbitrary account-rewriting subprocesses obscured validation,
 and distributed HTTP rate limits belong at the trusted ingress. Use the bounded

@@ -31,6 +31,8 @@ classifiers = [
   "Topic :: Communications :: Email",
 ]
 dependencies = [
+  "asn1crypto>=1.5.1,<2",
+  "cryptography>=46,<51",
   "dnspython>=2.8,<3",
   "email-validator>=2.2,<3",
   "fastapi>=0.140.9,<0.141",
@@ -104,4 +106,8 @@ files = ["src/automx"]
 
 [[tool.mypy.overrides]]
 module = ["lxml.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["asn1crypto.*"]
 ignore_missing_imports = true

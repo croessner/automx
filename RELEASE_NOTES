@@ -8,13 +8,16 @@ the historical shell client with the modular `automx` operator CLI.
 Protocol work includes Mail Autoconfig XML 1.2, corrected Outlook and
 MobileSync Autodiscover XML, an opt-in experimental Autodiscover v2 subset,
 PACC-03 with exact UAAC1 DNS digests, OAuth public-client/DCR metadata, and
-password-free Apple Mobileconfig profiles.
+password-free Apple Mobileconfig profiles with optional fail-closed,
+in-process RSA/SHA-256 CMS signing.
 
 Deployment now includes a hardened non-root container, a Docker Compose E2E
 stack, deterministic OpenAPI export, SPDX and CycloneDX SBOM targets, and
 vulnerability/secret scan gates. The CLI can emit and read-only verify the full
 DNS contract for every configured domain, and render the exact local
-Autoconfig, Autodiscover, and PACC document bytes without starting the server.
+Autoconfig, Autodiscover, Mobileconfig, and PACC document bytes without starting
+the server. Mobileconfig signature status is reported separately from exact
+profile bytes and distinguishes cryptographic integrity from device trust.
 Review `docs/migration.md` before upgrading.
 
 The IETF specifications used by several features are Internet-Drafts. Their

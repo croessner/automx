@@ -7,6 +7,7 @@ import plistlib
 from lxml import etree
 
 from automx.domain import AccountProfile, StaticDocument
+from automx.mobileconfig_signing import MobileconfigSigningError, inspect_mobileconfig
 
 MAX_STATIC_DOCUMENT_BYTES = 1_048_576
 
@@ -59,10 +60,15 @@ def load_static_xml(profile: AccountProfile, kind: str) -> bytes | None:
 
 def _contains_password_key(value: object) -> bool:
     if isinstance(value, dict):
-        return any(
-            "password" in str(key).casefold() or _contains_password_key(child)
-            for key, child in value.items()
-        )
+        for key, child in value.items():
+            normalized = str(key).casefold()
+            if "password" in normalized and (
+                normalized != "outgoingpasswordsameasincomingpassword" or child is not True
+            ):
+                return True
+            if _contains_password_key(child):
+                return True
+        return False
     if isinstance(value, list):
         return any(_contains_password_key(child) for child in value)
     return False
@@ -76,9 +82,10 @@ def load_static_mobileconfig(profile: AccountProfile) -> bytes | None:
         return None
     body = _read(document)
     try:
-        parsed: object = plistlib.loads(body)
-    except plistlib.InvalidFileException as exc:
-        raise StaticDocumentError("static mobileconfig is malformed") from exc
+        inspection = inspect_mobileconfig(body)
+        parsed: object = plistlib.loads(inspection.content)
+    except (MobileconfigSigningError, plistlib.InvalidFileException) as exc:
+        raise StaticDocumentError("static mobileconfig is malformed or has an invalid signature") from exc
     if not isinstance(parsed, dict) or parsed.get("PayloadType") != "Configuration":
         raise StaticDocumentError("static mobileconfig is not a configuration profile")
     if _contains_password_key(parsed):

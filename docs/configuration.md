@@ -89,8 +89,37 @@ legacy `%s` interpolation is rejected. LDAP certificate validation defaults to
 `backend = file` accepts relative `autoconfig`, `autodiscover`, and
 `mobileconfig` paths rooted at the configuration directory. Files are bounded to
 1 MiB and validated before serving; XML cannot contain DTDs/entities and static
-Mobileconfig profiles cannot contain password keys. Absolute or escaping paths
-are rejected.
+Mobileconfig profiles cannot contain password keys. Plain and correctly CMS-
+signed static profiles are accepted; invalid signatures fail closed. Absolute
+or escaping paths are rejected.
+
+## Mobileconfig signing
+
+Generated and plain static profiles can be signed explicitly with an in-process
+RSA/SHA-256 CMS signer. Configure the process-wide identity in `[automx]`:
+
+```ini
+[automx]
+mobileconfig_sign = yes
+mobileconfig_signing_certificate = secrets/mobileconfig-certificates.pem
+mobileconfig_signing_key = secrets/mobileconfig-key.pem
+mobileconfig_signing_key_password_file = secrets/mobileconfig-key-password
+```
+
+The certificate file is a PEM bundle whose first certificate is the signer and
+whose remaining certificates are included as intermediates. The signer must be
+currently valid, permit digital signatures when Key Usage is present, and match
+an RSA key of at least 2048 bits. Relative paths are resolved from the
+configuration directory; absolute paths support read-only secret mounts. The
+private key and optional one-line password file must have owner-only permissions
+and are read with a 1 MiB bound. Key material is never accepted from HTTP or CLI
+arguments and no external signing process is invoked.
+
+Signing is fail-closed. Configured material is rejected unless
+`mobileconfig_sign = yes`; missing, exposed, expired, mismatched, malformed, or
+undecryptable material prevents configuration loading. An already signed static
+profile is verified and preserved instead of being wrapped in a second CMS
+signature.
 
 Run `automx config validate --config PATH --domain DOMAIN` before deployment.
 The synthetic [E2E configuration](../contrib/e2e/automx.conf) demonstrates every

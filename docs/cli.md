@@ -38,6 +38,9 @@ automx render autodiscover --config /etc/automx/automx.conf \
   --email probe@example.test --schema outlook
 automx render autodiscover --config /etc/automx/automx.conf \
   --email probe@example.test --schema mobilesync
+automx render mobileconfig --config /etc/automx/automx.conf \
+  --email probe@example.test --common-name "Example User" \
+  --signature-status > automx.mobileconfig
 automx render pacc --config /etc/automx/automx.conf --domain example.test
 ```
 
@@ -48,6 +51,15 @@ the same profile resolution, dynamic backend, validated static-document, and
 renderer service as ASGI. They accept no credentials or network/write options.
 PACC output therefore has exact parity with `pacc digest`, `dns records`, the
 HTTP response, and `probe pacc`.
+
+`render mobileconfig` writes the exact plain or configured CMS-signed profile
+to stdout. `--signature-status` writes only a status line to stderr, so redirecting
+stdout still produces an unchanged `.mobileconfig` file. A `valid` result proves
+that the attached CMS signature and embedded content match and reports the
+signer certificate's SHA-256 fingerprint. It does not claim that a particular
+Apple device trusts the certificate chain; that decision depends on the trust
+anchors installed on the device. Without signing configuration the status is
+`unsigned`.
 
 ## DNS records
 

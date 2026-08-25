@@ -21,7 +21,9 @@
   suppression
 - Replace the historical automx-test shell client with automx probe commands
 - Add credential-free local rendering of exact Autoconfig, both Autodiscover
-  schemas, and PACC bytes through the shared ASGI document service
+  schemas, Mobileconfig, and PACC bytes through the shared ASGI document service
+- Restore optional Mobileconfig signing with bounded in-process RSA/SHA-256 CMS,
+  fail-closed key validation, signature inspection, and signed probe support
 
 * Version 1.1.2
 ---------------------------------

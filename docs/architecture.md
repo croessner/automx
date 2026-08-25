@@ -16,6 +16,12 @@ HTTP request
   -> framework Response
 ```
 
+Optional Mobileconfig signing is composed in the shared document service after
+profile rendering and before the framework response. The signer loads bounded,
+permission-checked key material once from explicit administrator configuration,
+uses in-process RSA/SHA-256 CMS, and verifies the attached DER result before it
+can leave the service. Renderers never read signing files or credentials.
+
 `app.py` composes routes and error mappings. `requests.py` enforces media types,
 body limits, and safe XML parsing. `configuration.py` reads compatible INI
 configuration and resolves one profile per request. `backends.py` isolates
@@ -34,6 +40,8 @@ describe the actual routes.
 ## Trust boundaries
 
 - Administrators control the INI file and optional backend configuration.
+- Mobileconfig signing keys and password files are administrator-controlled
+  secrets with owner-only filesystem permissions; no request can select them.
 - Email addresses, query values, XML, and forms are untrusted request input.
 - Dynamic backend results are untrusted until expanded into validated domain
   models.

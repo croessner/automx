@@ -21,6 +21,7 @@ from automx.domain import (
     StaticDocument,
     TLSMode,
 )
+from automx.mobileconfig_signing import MobileconfigSigner, MobileconfigSigningError
 
 
 class ConfigurationError(RuntimeError):
@@ -131,6 +132,54 @@ class ConfigurationRepository:
             parser.get("automx", "autodiscover_v2", fallback="no"),
             option="autodiscover_v2",
         )
+        self.mobileconfig_signer = self._mobileconfig_signer()
+
+    def _mobileconfig_signer(self) -> MobileconfigSigner | None:
+        enabled = _boolean(
+            self._parser.get("automx", "mobileconfig_sign", fallback="no"),
+            option="mobileconfig_sign",
+        )
+        option_names = (
+            "mobileconfig_signing_certificate",
+            "mobileconfig_signing_key",
+            "mobileconfig_signing_key_password_file",
+        )
+        configured = {
+            name: self._parser.get("automx", name, fallback="").strip()
+            for name in option_names
+        }
+        if not enabled:
+            if any(configured.values()):
+                raise ConfigurationError(
+                    "mobileconfig signing options require mobileconfig_sign=yes"
+                )
+            return None
+        if not configured["mobileconfig_signing_certificate"]:
+            raise ConfigurationError("mobileconfig signing certificate is required")
+        if not configured["mobileconfig_signing_key"]:
+            raise ConfigurationError("mobileconfig signing key is required")
+
+        def signing_path(name: str) -> Path | None:
+            value = configured[name]
+            if not value:
+                return None
+            candidate = Path(value).expanduser()
+            if not candidate.is_absolute():
+                candidate = self.base_directory / candidate
+            return candidate.resolve()
+
+        certificate_path = signing_path("mobileconfig_signing_certificate")
+        key_path = signing_path("mobileconfig_signing_key")
+        if certificate_path is None or key_path is None:
+            raise ConfigurationError("mobileconfig signing identity is incomplete")
+        try:
+            return MobileconfigSigner.from_files(
+                certificate_path,
+                key_path,
+                signing_path("mobileconfig_signing_key_password_file"),
+            )
+        except MobileconfigSigningError as exc:
+            raise ConfigurationError(str(exc)) from exc
 
     @classmethod
     def from_path(cls, path: str | Path) -> ConfigurationRepository:

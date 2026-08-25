@@ -16,6 +16,7 @@ from automx.configuration import ConfigurationRepository
 from automx.documents import (
     autoconfig_document,
     autodiscover_document,
+    mobileconfig_document,
     pacc_document,
 )
 from automx.renderers.autodiscover import AutodiscoverSchema
@@ -270,6 +271,10 @@ def test_render_commands_write_exact_shared_document_bytes(
             ["render", "pacc", *common, "--domain", "example.test"],
             pacc_document(repository, "example.test"),
         ),
+        (
+            ["render", "mobileconfig", *common, "--email", email],
+            mobileconfig_document(repository, email),
+        ),
     )
     for arguments, expected in cases:
         assert main(arguments) == 0
@@ -336,6 +341,32 @@ autoconfig = autoconfig.xml
     assert response.content == cli_body
 
 
+def test_render_mobileconfig_preserves_common_name_and_asgi_parity(
+    capsysbinary: pytest.CaptureFixture[bytes],
+) -> None:
+    arguments = [
+        "--config",
+        str(CONFIG),
+        "--email",
+        "probe@example.test",
+        "--common-name",
+        "Example User",
+    ]
+
+    assert main(["render", "mobileconfig", *arguments]) == 0
+    cli_body = capsysbinary.readouterr().out
+    response = TestClient(create_app(config_path=CONFIG)).post(
+        "/mobileconfig",
+        data={
+            "emailaddress": "probe@example.test",
+            "cn": "Example User",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.content == cli_body
+
+
 def test_render_errors_are_diagnostics_only(
     capsysbinary: pytest.CaptureFixture[bytes],
 ) -> None:
@@ -385,5 +416,15 @@ def test_render_help_has_no_credentials_or_network_mutation_options(
     help_text = capsys.readouterr().out
     assert "--email" in help_text
     assert "--schema {outlook,mobilesync}" in help_text
+    for forbidden in ("--password", "--token", "--apply", "--url", "--nameserver"):
+        assert forbidden not in help_text
+
+    with pytest.raises(SystemExit) as exited:
+        build_parser().parse_args(["render", "mobileconfig", "--help"])
+    assert exited.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "--email" in help_text
+    assert "--common-name" in help_text
+    assert "--signature-status" in help_text
     for forbidden in ("--password", "--token", "--apply", "--url", "--nameserver"):
         assert forbidden not in help_text

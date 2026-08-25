@@ -24,7 +24,8 @@ The following properties are release requirements:
 - Autodiscover v2 cannot turn request data into a target URL;
 - scripts run without a shell and with resource limits, SQL uses bound
   parameters, and LDAP validates server certificates;
-- mobileconfig profiles do not embed passwords;
+- mobileconfig profiles do not embed passwords; optional CMS signing uses
+  bounded, owner-only key material, fails closed, and verifies output integrity;
 - production containers run non-root and support a read-only root filesystem;
 - release images have SPDX and CycloneDX SBOMs and no known fixed high/critical
   vulnerability accepted without a documented decision.

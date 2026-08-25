@@ -58,6 +58,7 @@ def test_e2e_stack_and_probe_cover_every_public_protocol_family() -> None:
     assert "render autoconfig" in runner
     assert "render autodiscover" in runner
     assert "--schema outlook" in runner and "--schema mobilesync" in runner
+    assert "render mobileconfig" in runner
     assert "render pacc" in runner
     assert "dns records" in runner
     assert "dns check" in runner

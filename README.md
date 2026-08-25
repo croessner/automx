@@ -15,7 +15,8 @@ It serves:
 - Microsoft Autodiscover XML for Outlook and MobileSync;
 - a deliberately narrow, experimental Autodiscover v2 subset;
 - PACC JSON according to `draft-ietf-mailmaint-pacc-03`;
-- password-free Apple Mail `.mobileconfig` profiles;
+- password-free Apple Mail `.mobileconfig` profiles with optional verified
+  in-process CMS signing;
 - OAuth public-client metadata without publishing client secrets.
 
 PACC, Mail Autoconfig 1.2, and OAuth Public Clients are Internet-Drafts. Their

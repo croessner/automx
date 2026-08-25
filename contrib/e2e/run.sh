@@ -78,6 +78,9 @@ docker compose --project-name "$project_name" --file "$compose_file" run --rm --
     render autodiscover --config /etc/automx/automx.conf \
     --email probe@example.test --schema mobilesync >/dev/null
 docker compose --project-name "$project_name" --file "$compose_file" run --rm --no-deps automx \
+    render mobileconfig --config /etc/automx/automx.conf \
+    --email probe@example.test --signature-status >/dev/null
+docker compose --project-name "$project_name" --file "$compose_file" run --rm --no-deps automx \
     render pacc --config /etc/automx/automx.conf --domain example.test >/dev/null
 docker compose --project-name "$project_name" --file "$compose_file" run --rm --no-deps automx \
     dns records --config /etc/automx/automx.conf --domain example.test \
