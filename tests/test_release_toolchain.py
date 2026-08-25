@@ -265,6 +265,8 @@ def test_github_workflows_cover_ci_release_containers_and_packages() -> None:
     assert "run: make bootstrap" in workflows["release.yml"]
     assert "python -m pip install -e '.[dev]'" not in workflows["ci.yml"]
     assert "python -m pip install -e '.[dev]'" not in workflows["release.yml"]
+    assert "cache: false" in workflows["ci.yml"]
+    assert "cache: false" in workflows["release.yml"]
 
 
 def test_e2e_waits_on_the_composite_automx_healthcheck_only() -> None:
