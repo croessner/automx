@@ -1,0 +1,251 @@
+---
+name: Container Publish And Refresh
+
+"on":
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Immutable release tag to build.
+        required: true
+        type: string
+      build_reason:
+        description: Build reason recorded in OCI labels.
+        required: false
+        default: tag-push
+        type: string
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Published stable release tag to rebuild; defaults to latest stable.
+        required: false
+        type: string
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+concurrency:
+  group: containers-${{ inputs.release_tag || github.event.inputs.release_tag || 'latest-stable' }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      build_reason: ${{ steps.release.outputs.build_reason }}
+      enabled: ${{ steps.release.outputs.enabled }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      python_digest: ${{ steps.base.outputs.python_digest }}
+      python_image: ${{ steps.base.outputs.python_image }}
+      rebuild_suffix: ${{ steps.release.outputs.rebuild_suffix }}
+      release_commit: ${{ steps.release.outputs.release_commit }}
+      release_tag: ${{ steps.release.outputs.release_tag }}
+      tag_major: ${{ steps.release.outputs.tag_major }}
+      tag_minor: ${{ steps.release.outputs.tag_minor }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Check out workflow tooling
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release source
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_REASON: ${{ inputs.build_reason }}
+          REQUESTED_TAG: ${{ inputs.release_tag || github.event.inputs.release_tag }}
+        run: |
+          release_tag="${REQUESTED_TAG}"
+          build_reason="${REQUESTED_REASON}"
+
+          if [[ -z "${release_tag}" ]]; then
+            mapfile -t release_tags < <(gh release list \
+              --repo "${{ github.repository }}" \
+              --exclude-drafts \
+              --exclude-pre-releases \
+              --limit 100 \
+              --json tagName \
+              --jq '.[].tagName')
+            for candidate in "${release_tags[@]}"; do
+              if git cat-file -e "${candidate}:pyproject.toml" 2>/dev/null \
+                && git cat-file -e "${candidate}:Dockerfile-mojo" 2>/dev/null; then
+                release_tag="${candidate}"
+                break
+              fi
+            done
+          fi
+          if [[ -z "${release_tag}" || "${release_tag}" == "null" ]]; then
+            if [[ -n "${REQUESTED_TAG}" ]]; then
+              echo "Requested release tag is unavailable." >&2
+              exit 1
+            fi
+            echo "No workflow-managed stable release exists; refresh is not required."
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if [[ -z "${build_reason}" ]]; then
+            build_reason="manual-base-refresh"
+            if [[ "${{ github.event_name }}" == "schedule" ]]; then
+              build_reason="scheduled-base-refresh"
+            fi
+          fi
+
+          release_commit="$(git rev-list -n 1 "${release_tag}")"
+          project_version="$(
+            git show "${release_tag}:pyproject.toml" \
+              | python3 -c 'import sys, tomllib; print(tomllib.load(sys.stdin.buffer)["project"]["version"])'
+          )"
+          metadata="$(./scripts/release-semver-metadata.sh "${release_tag}" "${project_version}")"
+          while IFS= read -r line; do
+            echo "${line}" >> "${GITHUB_OUTPUT}"
+          done <<< "${metadata}"
+
+          rebuild_suffix=""
+          if [[ "${build_reason}" != "tag-push" ]]; then
+            rebuild_suffix="rebuild-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          fi
+          {
+            echo "build_reason=${build_reason}"
+            echo "enabled=true"
+            echo "rebuild_suffix=${rebuild_suffix}"
+            echo "release_commit=${release_commit}"
+            echo "release_tag=${release_tag}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        if: steps.release.outputs.enabled == 'true'
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Resolve Python base manifest digest
+        if: steps.release.outputs.enabled == 'true'
+        id: base
+        run: |
+          while IFS= read -r line; do
+            echo "${line}" >> "${GITHUB_OUTPUT}"
+          done < <(./scripts/container-base-digest.sh)
+
+  publish:
+    needs: prepare
+    if: needs.prepare.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: python
+            image: automx
+            dockerfile: Dockerfile
+            platforms: linux/amd64,linux/arm64
+          - variant: mojo
+            image: automx-mojo
+            dockerfile: Dockerfile-mojo
+            platforms: linux/amd64
+    steps:
+      - name: Check out immutable release source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.prepare.outputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Login to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decide whether this image needs a rebuild
+        id: decision
+        env:
+          BUILD_REASON: ${{ needs.prepare.outputs.build_reason }}
+          EXPECTED_DIGEST: ${{ needs.prepare.outputs.python_digest }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ needs.prepare.outputs.release_tag }}
+        run: |
+          if [[ "${BUILD_REASON}" == "tag-push" ]]; then
+            echo "reason=tag-push" >> "${GITHUB_OUTPUT}"
+            echo "should_build=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          while IFS= read -r line; do
+            echo "${line}" >> "${GITHUB_OUTPUT}"
+          done < <(
+            ./scripts/container-refresh-check.sh \
+              --image "${IMAGE}" \
+              --expected-python-digest "${EXPECTED_DIGEST}"
+          )
+
+      - name: Generate immutable and stable image tags
+        if: steps.decision.outputs.should_build == 'true'
+        id: tags
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          REBUILD_SUFFIX: ${{ needs.prepare.outputs.rebuild_suffix }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+          TAG_MAJOR: ${{ needs.prepare.outputs.tag_major }}
+          TAG_MINOR: ${{ needs.prepare.outputs.tag_minor }}
+        run: |
+          {
+            echo 'tags<<EOF'
+            echo "${IMAGE}:${RELEASE_TAG}"
+            if [[ "${PRERELEASE}" != "true" ]]; then
+              echo "${IMAGE}:latest"
+              echo "${IMAGE}:${TAG_MAJOR}"
+              echo "${IMAGE}:${TAG_MINOR}"
+            fi
+            if [[ -n "${REBUILD_SUFFIX}" ]]; then
+              echo "${IMAGE}:${RELEASE_TAG}-${REBUILD_SUFFIX}"
+            fi
+            echo 'EOF'
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Build and publish multi-platform image
+        if: steps.decision.outputs.should_build == 'true'
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platforms }}
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            BUILD_REASON=${{ needs.prepare.outputs.build_reason }}
+            PYTHON_BASE_DIGEST=${{ needs.prepare.outputs.python_digest }}
+            PYTHON_IMAGE=${{ needs.prepare.outputs.python_image }}@${{ needs.prepare.outputs.python_digest }}
+            REVISION=${{ needs.prepare.outputs.release_commit }}
+            VERSION=${{ needs.prepare.outputs.version }}
+
+      - name: Attest published image
+        if: steps.decision.outputs.should_build == 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.1.0
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Prove anonymous public manifest access
+        if: steps.decision.outputs.should_build == 'true'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+        run: |
+          docker logout ghcr.io
+          if ! docker buildx imagetools inspect "${IMAGE}@${DIGEST}" >/dev/null; then
+            echo "${IMAGE} is not anonymously readable." >&2
+            echo "Set the linked GHCR package visibility to Public, then rerun this job." >&2
+            exit 1
+          fi

@@ -23,6 +23,10 @@ def test_runtime_image_is_non_root_and_contains_no_build_toolchain() -> None:
     assert "build-essential" not in runtime
     assert " gcc" not in runtime
     assert "COPY . ." not in dockerfile
+    assert "ARG PYTHON_BASE_DIGEST" in dockerfile
+    assert "io.automx.base.python.digest" in runtime
+    assert "org.opencontainers.image.revision" in runtime
+    assert "io.automx.build.reason" in runtime
 
 
 def test_compose_runtime_hardening_is_explicit() -> None:

@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "features"
+    commit-message:
+      prefix: "Vendor"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "features"
+    commit-message:
+      prefix: "Ci"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "features"
+    commit-message:
+      prefix: "Build"

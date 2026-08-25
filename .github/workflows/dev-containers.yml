@@ -1,0 +1,109 @@
+---
+name: Development Containers
+
+"on":
+  push:
+    branches:
+      - features
+    paths:
+      - Dockerfile
+      - Dockerfile-mojo
+      - pyproject.toml
+      - src/automx/**
+      - src/automx_mojo/**
+      - scripts/container-base-digest.sh
+      - .github/workflows/dev-containers.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+concurrency:
+  group: development-containers
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: automx
+            dockerfile: Dockerfile
+            platforms: linux/amd64,linux/arm64
+          - image: automx-mojo
+            dockerfile: Dockerfile-mojo
+            platforms: linux/amd64
+    steps:
+      - name: Check out features source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+
+      - name: Resolve project version
+        id: project
+        run: echo "version=$(python scripts/project-version.py)" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Resolve Python base manifest digest
+        id: base
+        run: |
+          while IFS= read -r line; do
+            echo "${line}" >> "${GITHUB_OUTPUT}"
+          done < <(./scripts/container-base-digest.sh)
+
+      - name: Login to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish development image
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platforms }}
+          push: true
+          sbom: true
+          provenance: mode=max
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:dev
+          build-args: |
+            BUILD_REASON=features-push
+            PYTHON_BASE_DIGEST=${{ steps.base.outputs.python_digest }}
+            PYTHON_IMAGE=${{ steps.base.outputs.python_image }}@${{ steps.base.outputs.python_digest }}
+            REVISION=${{ github.sha }}
+            VERSION=${{ steps.project.outputs.version }}
+
+      - name: Attest published development image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.1.0
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Prove anonymous public manifest access
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+        run: |
+          docker logout ghcr.io
+          if ! docker buildx imagetools inspect "${IMAGE}@${DIGEST}" >/dev/null; then
+            echo "${IMAGE} is not anonymously readable." >&2
+            echo "Set the linked GHCR package visibility to Public, then rerun this job." >&2
+            exit 1
+          fi

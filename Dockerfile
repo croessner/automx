@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.12
 
 ARG PYTHON_IMAGE=python:3.14.7-slim-trixie
+ARG PYTHON_BASE_DIGEST=unresolved
 
 FROM ${PYTHON_IMAGE} AS builder
 
@@ -18,11 +19,17 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 FROM ${PYTHON_IMAGE} AS runtime
 
 ARG VERSION=3.0.0-beta.1
+ARG REVISION=unknown
+ARG BUILD_REASON=local
+ARG PYTHON_BASE_DIGEST
 LABEL org.opencontainers.image.title="automx" \
       org.opencontainers.image.description="Standards-oriented automatic account configuration service" \
       org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
-      org.opencontainers.image.source="https://github.com/croessner/automx"
+      org.opencontainers.image.source="https://github.com/croessner/automx" \
+      io.automx.base.python.digest="${PYTHON_BASE_DIGEST}" \
+      io.automx.build.reason="${BUILD_REASON}"
 
 ENV PATH="/opt/automx/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \

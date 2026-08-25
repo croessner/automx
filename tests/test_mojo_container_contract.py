@@ -42,6 +42,10 @@ def test_mojo_image_has_separate_build_and_hardened_runtime_stages() -> None:
     assert "mojo build" not in runtime
     assert "install --yes --no-install-recommends gcc" not in runtime
     assert "COPY --from=mojo-builder /opt/mojo /opt/mojo" not in runtime
+    assert "ARG PYTHON_BASE_DIGEST" in dockerfile
+    assert "io.automx.base.python.digest" in runtime
+    assert "org.opencontainers.image.revision" in runtime
+    assert "io.automx.build.reason" in runtime
 
 
 def test_makefile_exposes_a_distinct_mojo_image_build() -> None:
@@ -49,6 +53,8 @@ def test_makefile_exposes_a_distinct_mojo_image_build() -> None:
 
     assert "docker-build-mojo:" in makefile
     assert "--file Dockerfile-mojo" in makefile
-    assert "--build-arg VERSION=3.0.0-beta.1" in makefile.split(
+    mojo_target = makefile.split(
         "docker-build-mojo:", maxsplit=1
     )[1]
+    assert "--build-arg VERSION=$(VERSION)" in mojo_target
+    assert "--tag $(MOJO_IMAGE)" in mojo_target

@@ -1,0 +1,248 @@
+---
+name: Release
+
+"on":
+  push:
+    tags:
+      - "v[0-9]*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  quality-and-python-distributions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Validate release metadata
+        run: |
+          project_version="$(python scripts/project-version.py)"
+          ./scripts/release-semver-metadata.sh "${GITHUB_REF_NAME}" "${project_version}"
+
+      - name: Install development dependencies
+        run: python -m pip install -e '.[dev]'
+
+      - name: Run Python release gates
+        run: |
+          make check
+          make coverage
+          make audit
+          make dist
+
+      - name: Set up Go for actionlint
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.26.1"
+
+      - name: Install and run actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          make workflow-check
+
+      - name: Upload Python distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-distributions
+          path: |
+            dist/*.tar.gz
+            dist/*.whl
+          if-no-files-found: error
+
+      - name: Attest Python distributions
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.1.0
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.whl
+
+  containers:
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    uses: ./.github/workflows/containers.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+      build_reason: tag-push
+
+  linux-packages:
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            deb_arch: amd64
+            rpm_arch: x86_64
+            build_rpm: true
+          - runner: ubuntu-24.04-arm
+            deb_arch: arm64
+            rpm_arch: aarch64
+            build_rpm: false
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install native backend build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes build-essential libldap2-dev libsasl2-dev libssl-dev
+
+      - name: Install package-build dependencies
+        run: python -m pip install -e '.[package,ldap,sql,cache]'
+
+      - name: Validate release metadata
+        id: release
+        run: |
+          project_version="$(python scripts/project-version.py)"
+          ./scripts/release-semver-metadata.sh \
+            "${GITHUB_REF_NAME}" \
+            "${project_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build and smoke-test standalone runtime
+        run: |
+          make package-root PACKAGE_ROOT=.pkgroot STANDALONE_DIR=dist/standalone
+          dist/standalone/automx/automx --version
+          dist/standalone/automx/automx config validate \
+            --config contrib/e2e/automx.conf \
+            --domain example.test
+
+      - name: Build DEB
+        uses: jiro4989/build-deb-action@a883c65147d80579cb359548b9a902ff0a35ae5b # v4.3.0
+        with:
+          package: automx
+          package_root: .pkgroot
+          maintainer: Christian Roessner
+          version: ${{ steps.release.outputs.package_version }}
+          arch: ${{ matrix.deb_arch }}
+          desc: Standards-oriented automatic account configuration service
+
+      - name: Build RPM
+        if: matrix.build_rpm
+        uses: jiro4989/build-rpm-action@f11474937f502aaa8bb36d8c1a8ec6f8de536a0c # v2.5.0
+        with:
+          package: automx
+          package_root: .pkgroot
+          maintainer: Christian Roessner
+          version: ${{ steps.release.outputs.package_version }}
+          arch: ${{ matrix.rpm_arch }}
+          desc: Standards-oriented automatic account configuration service
+          summary: Standards-oriented automatic account configuration service
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-packages-${{ matrix.deb_arch }}
+          path: |
+            ./*.deb
+            ./*.rpm
+          if-no-files-found: error
+
+      - name: Attest DEB package
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.1.0
+        with:
+          subject-path: ./*.deb
+
+      - name: Attest RPM package
+        if: matrix.build_rpm
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.1.0
+        with:
+          subject-path: ./*.rpm
+
+  create-release:
+    needs:
+      - quality-and-python-distributions
+      - containers
+      - linux-packages
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Check out release history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist/release-assets
+          merge-multiple: true
+
+      - name: Resolve release metadata and notes
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          project_version="$(python3 scripts/project-version.py)"
+          ./scripts/release-semver-metadata.sh \
+            "${GITHUB_REF_NAME}" \
+            "${project_version}" >> "${GITHUB_OUTPUT}"
+
+          previous_tag="$(gh release view \
+            --repo "${{ github.repository }}" \
+            --json tagName \
+            --jq '.tagName' 2>/dev/null || true)"
+          if [[ -n "${previous_tag}" ]]; then
+            ./scripts/release-notes.sh "${GITHUB_REF_NAME}" "${previous_tag}" > /tmp/release-notes.md
+          else
+            ./scripts/release-notes.sh "${GITHUB_REF_NAME}" > /tmp/release-notes.md
+          fi
+
+          (
+            cd dist/release-assets
+            find . -type f ! -name SHA256SUMS -print0 \
+              | sort -z \
+              | xargs -0 shasum -a 256 > /tmp/automx-SHA256SUMS
+            mv /tmp/automx-SHA256SUMS SHA256SUMS
+          )
+
+      - name: Create GitHub release with generated notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        run: |
+          mapfile -t assets < <(find dist/release-assets -type f -print | sort)
+          release_args=(
+            "${GITHUB_REF_NAME}"
+            --repo "${{ github.repository }}"
+            --verify-tag
+            --notes-file /tmp/release-notes.md
+            --generate-notes
+          )
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            release_args+=(--prerelease)
+          else
+            release_args+=(--latest)
+          fi
+          gh release create "${release_args[@]}" "${assets[@]}"
