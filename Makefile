@@ -68,7 +68,7 @@ docker-build-mojo:
 		--tag $(MOJO_IMAGE) .
 
 mojo-smoke: docker-build-mojo
-	docker run --rm $(MOJO_IMAGE) --version
+	scripts/mojo-container-smoke.sh $(MOJO_IMAGE)
 
 e2e:
 	contrib/e2e/run.sh

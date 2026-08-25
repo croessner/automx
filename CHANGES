@@ -1,3 +1,9 @@
+* Version 3.0.0-beta.3 - 2026 modernization preview
+---------------------------------
+- Compile the Mojo entrypoint for an explicit Linux x86-64-v3 baseline
+- Reject AVX-512 instructions from the release binary
+- Exercise Mojo CLI, configuration validation, and server readiness gates
+
 * Version 3.0.0-beta.2 - 2026 modernization preview
 ---------------------------------
 - Build DEB packages natively on their matching amd64 and arm64 runners

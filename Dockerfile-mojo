@@ -26,14 +26,19 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 WORKDIR /build
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends gcc libc6-dev \
+    && apt-get install --yes --no-install-recommends binutils gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m venv /opt/mojo \
     && /opt/mojo/bin/python -m pip install "mojo==${MOJO_VERSION}"
 COPY src/automx_mojo/main.mojo ./main.mojo
+COPY scripts/check-no-avx512.sh ./scripts/check-no-avx512.sh
 RUN mkdir -p /out/mojo-runtime \
-    && /opt/mojo/bin/mojo build main.mojo -o /out/automx \
+    && /opt/mojo/bin/mojo build \
+          --target-triple=x86_64-unknown-linux-gnu \
+          --march=x86-64-v3 \
+          main.mojo -o /out/automx \
+    && sh scripts/check-no-avx512.sh /out/automx \
     && mojo_lib=/opt/mojo/lib/python3.14/site-packages/modular/lib \
     && cp "$mojo_lib/libKGENCompilerRTShared.so" \
           "$mojo_lib/libMSupportGlobals.so" \
@@ -42,7 +47,7 @@ RUN mkdir -p /out/mojo-runtime \
 
 FROM ${PYTHON_IMAGE} AS runtime
 
-ARG VERSION=3.0.0-beta.2
+ARG VERSION=3.0.0-beta.3
 ARG REVISION=unknown
 ARG BUILD_REASON=local
 ARG PYTHON_BASE_DIGEST

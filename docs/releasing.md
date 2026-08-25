@@ -33,7 +33,7 @@ It requires Docker, Actionlint, Syft, Trivy, and the `package` Python extra.
 2. Update version-specific protocol and operator documentation.
 3. Merge the reviewed release state into `main` and run `make release-guardrails`.
 4. Create and push an annotated SemVer tag that exactly matches the project
-   version, for example `v3.0.0-beta.2`.
+   version, for example `v3.0.0-beta.3`.
 
 The tag starts `.github/workflows/release.yml`. The workflow repeats the Python
 gates, validates tag/version parity, builds sdist and wheel artifacts, calls the

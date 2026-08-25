@@ -370,6 +370,9 @@ def test_github_workflows_cover_ci_release_containers_and_packages() -> None:
     ]
     assert "docker logout ghcr.io" in workflows["containers.yml"]
     assert "container-refresh-check.sh" in workflows["containers.yml"]
+    assert "scripts/mojo-container-smoke.sh" in workflows["containers.yml"]
+    assert 'matrix.variant == \'mojo\'' in workflows["containers.yml"]
+    assert '"${IMAGE}@${DIGEST}"' in workflows["containers.yml"]
     package_action = (ROOT / ".github/actions/build-linux-packages/action.yml").read_text(
         encoding="utf-8"
     )

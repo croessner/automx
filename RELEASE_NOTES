@@ -1,4 +1,4 @@
-automx 3.0.0-beta.2
+automx 3.0.0-beta.3
 ====================
 
 This release is a ground-up modernization of the established automx service.
@@ -24,6 +24,11 @@ Beta 2 replaces architecture-incompatible third-party Linux package actions
 with a bounded, shell-free native package builder. DEB artifacts are built on
 their matching amd64 or arm64 runner, while RPM creation copies the complete
 staged filesystem without splitting filenames that contain spaces.
+
+Beta 3 makes the Mojo image portable across x86-64-v3 hosts. The release build
+now selects an explicit Linux AMD64 and AVX2 baseline, rejects AVX-512 machine
+code, and exercises version, help, configuration validation, and server
+readiness before publication.
 
 The IETF specifications used by several features are Internet-Drafts. Their
 exact pinned versions are listed in `docs/protocols/status.md`.

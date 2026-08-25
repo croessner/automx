@@ -53,7 +53,7 @@ echo "non-root runtime uid: $runtime_uid"
 
 runtime_version=$(docker compose --project-name "$project_name" --file "$compose_file" \
     exec -T automx automx --version)
-if [ "$runtime_version" != "automx 3.0.0-beta.2" ]; then
+if [ "$runtime_version" != "automx 3.0.0-beta.3" ]; then
     echo "unexpected runtime version: $runtime_version" >&2
     exit 1
 fi

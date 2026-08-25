@@ -4,8 +4,8 @@ services:
       context: .
       args:
         PYTHON_IMAGE: python:3.14.7-slim-trixie
-        VERSION: 3.0.0-beta.2
-    image: automx:3.0.0-beta.2
+        VERSION: 3.0.0-beta.3
+    image: automx:3.0.0-beta.3
     restart: unless-stopped
     read_only: true
     user: "10001:10001"

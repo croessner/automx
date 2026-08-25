@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 FROM ${PYTHON_IMAGE} AS runtime
 
-ARG VERSION=3.0.0-beta.2
+ARG VERSION=3.0.0-beta.3
 ARG REVISION=unknown
 ARG BUILD_REASON=local
 ARG PYTHON_BASE_DIGEST

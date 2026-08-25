@@ -237,6 +237,13 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
+      - name: Smoke-test published Mojo image
+        if: steps.decision.outputs.should_build == 'true' && matrix.variant == 'mojo'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+        run: scripts/mojo-container-smoke.sh "${IMAGE}@${DIGEST}"
+
       - name: Prove anonymous public manifest access
         if: steps.decision.outputs.should_build == 'true'
         env:
