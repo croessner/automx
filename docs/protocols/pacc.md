@@ -4,7 +4,7 @@ automx implements `draft-ietf-mailmaint-pacc-03`, an Internet-Draft and work in
 progress. It serves deterministic JSON at:
 
 ```text
-https://ua-auto-config.example.com/.well-known/user-agent-configuration.json
+https://ua-auto-config.example.test/.well-known/user-agent-configuration.json
 ```
 
 The JSON contains only the protocol fields PACC defines. The configured SMTP
@@ -15,11 +15,11 @@ profile rather than implying an interoperable endpoint. HTTP services use
 absolute HTTPS URLs; WebDAV-family entries cannot be bare origins. OAuth
 public-client metadata contains only a validated issuer.
 
-PACC discovery is complete only when `_ua-auto-config.example.com` publishes a
+PACC discovery is complete only when `_ua-auto-config.example.test` publishes a
 TXT record containing the SHA-256 digest of the decoded HTTP response bytes:
 
 ```console
-automx pacc digest --config /etc/automx/automx.conf --domain example.com
+automx pacc digest --config /etc/automx/automx.conf --domain example.test
 ```
 
 The result has this shape:
@@ -33,9 +33,9 @@ to the JSON document changes the digest and requires a DNS update. Validate the
 deployed body against local configuration with:
 
 ```console
-automx probe pacc --base-url https://ua-auto-config.example.com \
-  --email probe@example.com --config /etc/automx/automx.conf \
-  --domain example.com
+automx probe pacc --base-url https://ua-auto-config.example.test \
+  --email probe@example.test --config /etc/automx/automx.conf \
+  --domain example.test
 ```
 
 Run `automx dns check` separately against every authoritative and desired

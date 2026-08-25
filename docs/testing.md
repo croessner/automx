@@ -21,11 +21,26 @@ a read-only filesystem, and invokes `automx probe all`. The stack uses synthetic
 non-root CoreDNS fixture proves the installed `dns check` command against
 CNAME, SRV, PACC TXT, A, and AAAA data, including PACC's semantic TXT matching.
 The same stack executes all local `render` schemas through the installed CLI
-before checking DNS publication.
-The stack proves protocol contracts, not
+before checking DNS publication. The stack proves protocol contracts, not
 interoperability with a particular third-party client.
 
 `make sbom` uses Syft to create SPDX JSON and CycloneDX JSON in `dist/sbom/`.
 `make scan` gates fixed high/critical findings from that final-filesystem SBOM
 and performs a Trivy image secret scan. Generated artifacts are ignored and
 must be regenerated for each release image.
+
+## Release and GitHub gates
+
+`make workflow-check` validates every GitHub Actions workflow with Actionlint.
+`make mojo-smoke` builds the Mojo interop image and executes its installed CLI.
+`make scan-mojo` creates and scans a separate SBOM for that final filesystem.
+
+`make standalone` builds the self-contained runtime used by Linux packages and
+executes CLI version and configuration smokes. `make package-root` stages its
+systemd unit, operator example, documentation, and runtime in the filesystem
+layout consumed by the DEB/RPM jobs.
+
+`make release-guardrails` combines the Python quality, coverage, audit,
+distribution, workflow, E2E, both image-scan, and package-root gates. See
+[Releases and GitHub supply chain](releasing.md) for the branch, tag, GHCR, and
+artifact publication contracts.

@@ -5,19 +5,19 @@ required:
 
 ```ini
 [automx]
-provider = example.com
-domains = example.com
+provider = example.test
+domains = example.test
 autodiscover_v2 = no
 
 [global]
 backend = static
 imap = yes
-imap_server = imap.example.com
+imap_server = imap.example.test
 imap_port = 993
 imap_encryption = ssl
 imap_auth = oauth2, plaintext
 smtp = yes
-smtp_server = smtp.example.com
+smtp_server = smtp.example.test
 smtp_port = 465
 smtp_encryption = ssl
 smtp_auth = oauth2, plaintext
@@ -67,9 +67,9 @@ published as the root-level `setupServer` element.
 ## OAuth public-client metadata
 
 ```ini
-oauth_issuer = https://identity.example.com/
-oauth_auth_url = https://identity.example.com/authorize
-oauth_token_url = https://identity.example.com/token
+oauth_issuer = https://identity.example.test/
+oauth_auth_url = https://identity.example.test/authorize
+oauth_token_url = https://identity.example.test/token
 oauth_scope = openid offline_access urn:ietf:params:oauth:scope:mail
 # oauth_client_id = optional-pre-registered-public-client
 ```

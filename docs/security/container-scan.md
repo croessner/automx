@@ -35,3 +35,20 @@ Syft. The separate Trivy secret scan continues to inspect the image itself.
 Run `make e2e` to additionally prove that the Compose service runs as a
 non-root user on a read-only root filesystem and that its public protocol
 endpoints remain usable.
+
+Release publication applies the same hardened runtime contract to
+`ghcr.io/croessner/automx` and `ghcr.io/croessner/automx-mojo`. GitHub Actions
+adds build provenance and an OCI SBOM, records the exact upstream Python base
+manifest digest, and proves anonymous manifest access after logging out of
+GHCR. The scheduled stable refresh rebuilds only images whose recorded base
+digest no longer matches that upstream manifest.
+
+Local final-filesystem scans remain authoritative for vulnerability policy:
+
+```console
+make scan IMAGE=automx:dev
+make scan-mojo MOJO_IMAGE=automx-mojo:dev
+```
+
+See [Releases and GitHub supply chain](../releasing.md) for tag aliases,
+scheduled refresh behavior, and public-package visibility.

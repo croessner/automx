@@ -33,12 +33,12 @@ configuration without starting HTTP or reducing the result to probe status:
 
 ```console
 automx render autoconfig --config /etc/automx/automx.conf \
-  --email probe@example.com
+  --email probe@example.test
 automx render autodiscover --config /etc/automx/automx.conf \
-  --email probe@example.com --schema outlook
+  --email probe@example.test --schema outlook
 automx render autodiscover --config /etc/automx/automx.conf \
-  --email probe@example.com --schema mobilesync
-automx render pacc --config /etc/automx/automx.conf --domain example.com
+  --email probe@example.test --schema mobilesync
+automx render pacc --config /etc/automx/automx.conf --domain example.test
 ```
 
 Document bytes go directly to stdout without a banner, reformatting, or an
@@ -53,7 +53,7 @@ HTTP response, and `probe pacc`.
 
 ```console
 automx dns records --config /etc/automx/automx.conf \
-  --domain example.com --service-host automx.example.net --format zone
+  --domain example.test --service-host automx.example.test --format zone
 ```
 
 The command emits Autoconfig and Autodiscover aliases, the Autodiscover SRV
@@ -72,11 +72,11 @@ used by `render pacc` and `dns records`:
 
 ```console
 automx dns check --config /etc/automx/automx.conf \
-  --service-host autoconfig.example.net
+  --service-host automx.example.test
 automx dns check --config /etc/automx/automx.conf \
-  --service-host autoconfig.example.net --nameserver 192.0.2.53
+  --service-host automx.example.test --nameserver 192.0.2.53
 automx dns check --config /etc/automx/automx.conf \
-  --service-host autoconfig.example.net --nameserver 1.1.1.1 --format json
+  --service-host automx.example.test --nameserver 1.1.1.1 --format json
 ```
 
 The default is all configured non-wildcard domains. Use `--domain` for a
@@ -124,9 +124,9 @@ Use a visibly synthetic local part and the domain-specific PACC hostname for a
 production probe:
 
 ```console
-automx probe all --base-url https://ua-auto-config.example.com \
-  --email probe@example.com --config /etc/automx/automx.conf \
-  --domain example.com
+automx probe all --base-url https://ua-auto-config.example.test \
+  --email probe@example.test --config /etc/automx/automx.conf \
+  --domain example.test
 ```
 
 `probe` deliberately handles one domain per invocation so its origin, email
@@ -135,7 +135,7 @@ can consume the domain list from the read-only DNS plan (requires `jq`):
 
 ```console
 automx dns records --config /etc/automx/automx.conf --all-domains \
-  --service-host autoconfig.example.net --format json \
+  --service-host automx.example.test --format json \
 | jq -r '.domains[]' \
 | while IFS= read -r domain; do
     automx probe all --base-url "https://ua-auto-config.${domain}" \

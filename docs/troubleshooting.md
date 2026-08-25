@@ -1,11 +1,21 @@
 # Troubleshooting
 
-Start with the offline contract:
+Start with the offline contract before restarting or changing a deployment:
 
 ```console
-automx config validate --config /etc/automx/automx.conf --domain example.com
+automx config validate --config /etc/automx/automx.conf --domain example.test
 automx openapi check --config /etc/automx/automx.conf
 ```
+
+Use the narrowest check that matches the symptom:
+
+| Symptom | First evidence | Next check |
+| --- | --- | --- |
+| Container does not become ready | `docker compose ps` and the readiness healthcheck | Confirm the mounted configuration path and run `config validate` |
+| One protocol document is rejected | Local `render` output and exit status | Run the matching focused `probe` against public HTTPS |
+| PACC digest differs | `probe pacc --config ...` byte-parity result | Compare authoritative and recursive views with `dns check` |
+| DNS publication appears incomplete | One explicit resolver result | Query each authoritative server separately before public recursors |
+| Experimental v2 returns 404 | Configured `autodiscover_v2` value | Confirm the requested protocol has an allowlisted configured URL |
 
 Exit status 2 means an operator input, configuration, filesystem, or protocol-
 representation error. The CLI writes that error to stderr and never includes
