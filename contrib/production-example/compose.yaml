@@ -1,0 +1,74 @@
+services:
+  automx:
+    image: ${AUTOMX_IMAGE:?Set AUTOMX_IMAGE to an immutable registry digest}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: "1.0"
+    stop_grace_period: 15s
+    tmpfs:
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+    environment:
+      AUTOMX_CONFIG: /etc/automx/automx.conf
+    volumes:
+      - ./automx.conf:/etc/automx/automx.conf:ro
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2).read()
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - edge
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: edge
+      traefik.http.services.automx.loadbalancer.server.port: "8000"
+
+      traefik.http.routers.automx-autoconfig.entrypoints: websecure
+      traefik.http.routers.automx-autoconfig.rule: >-
+        Host(`autoconfig.example.test`) ||
+        Host(`autoconfig.example-mail.test`)
+      traefik.http.routers.automx-autoconfig.service: automx
+      traefik.http.routers.automx-autoconfig.tls: "true"
+      traefik.http.routers.automx-autoconfig.tls.certresolver: example
+
+      traefik.http.routers.automx-autodiscover.entrypoints: websecure
+      traefik.http.routers.automx-autodiscover.rule: >-
+        Host(`autodiscover.example.test`) ||
+        Host(`autodiscover.example-mail.test`)
+      traefik.http.routers.automx-autodiscover.service: automx
+      traefik.http.routers.automx-autodiscover.tls: "true"
+      traefik.http.routers.automx-autodiscover.tls.certresolver: example
+
+      traefik.http.routers.automx-pacc.entrypoints: websecure
+      traefik.http.routers.automx-pacc.rule: >-
+        Host(`ua-auto-config.example.test`) ||
+        Host(`ua-auto-config.example-mail.test`)
+      traefik.http.routers.automx-pacc.service: automx
+      traefik.http.routers.automx-pacc.tls: "true"
+      traefik.http.routers.automx-pacc.tls.certresolver: example
+
+networks:
+  edge:
+    external: true

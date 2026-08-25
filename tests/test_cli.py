@@ -5,11 +5,21 @@ import json
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
+from automx.app import create_app
 from automx.cli import build_parser, main
 from automx.commands import serve
 from automx.commands.openapi import schema, serialized_schema
 from automx.commands.probe import ProbeClient
+from automx.configuration import ConfigurationRepository
+from automx.documents import (
+    autoconfig_document,
+    autodiscover_document,
+    pacc_document,
+)
+from automx.renderers.autodiscover import AutodiscoverSchema
+from automx.renderers.pacc import pacc_digest_record
 
 ROOT = Path(__file__).parents[1]
 CONFIG = ROOT / "contrib/e2e/automx.conf"
@@ -42,7 +52,7 @@ def test_top_level_help_is_english_and_lists_modular_commands() -> None:
     help_text = build_parser().format_help()
 
     assert "Operate, validate, publish, and probe" in help_text
-    for command in ("serve", "config", "openapi", "dns", "pacc", "probe"):
+    for command in ("serve", "config", "openapi", "dns", "pacc", "probe", "render"):
         assert command in help_text
     assert "pacc-digest" not in help_text
     assert "validate-config" not in help_text
@@ -65,7 +75,7 @@ def test_pacc_digest_and_dns_zone_output_are_exact(
 ) -> None:
     arguments = ["--config", str(CONFIG), "--domain", "example.test"]
     assert main(["pacc", "digest", *arguments]) == 0
-    digest = "v=UAAC1; a=sha256; d=PZ0Wgfaw7fs6Jo/1YHAtnt7tVoMpQO85rN/jI5dK59I="
+    digest = "v=UAAC1; a=sha256; d=x4UCWvDe1w8ERAAFF8yaWut70DP8PNqw+p0oRsr6zxE="
     assert capsys.readouterr().out == f"{digest}\n"
 
     assert (
@@ -218,3 +228,162 @@ def test_probe_requires_explicit_opt_in_for_plain_http_and_never_takes_a_passwor
     help_text = capsys.readouterr().out
     assert "--basic-auth-env" in help_text
     assert "--password" not in help_text
+
+
+def test_render_commands_write_exact_shared_document_bytes(
+    capsysbinary: pytest.CaptureFixture[bytes],
+) -> None:
+    repository = ConfigurationRepository.from_path(CONFIG)
+    email = "probe@example.test"
+    common = ["--config", str(CONFIG)]
+
+    cases = (
+        (
+            ["render", "autoconfig", *common, "--email", email],
+            autoconfig_document(repository, email),
+        ),
+        (
+            [
+                "render",
+                "autodiscover",
+                *common,
+                "--email",
+                email,
+                "--schema",
+                "outlook",
+            ],
+            autodiscover_document(repository, email, AutodiscoverSchema.OUTLOOK),
+        ),
+        (
+            [
+                "render",
+                "autodiscover",
+                *common,
+                "--email",
+                email,
+                "--schema",
+                "mobilesync",
+            ],
+            autodiscover_document(repository, email, AutodiscoverSchema.MOBILE),
+        ),
+        (
+            ["render", "pacc", *common, "--domain", "example.test"],
+            pacc_document(repository, "example.test"),
+        ),
+    )
+    for arguments, expected in cases:
+        assert main(arguments) == 0
+        captured = capsysbinary.readouterr()
+        assert captured.out == expected
+        assert captured.err == b""
+
+
+def test_render_pacc_preserves_digest_parity(
+    capsysbinary: pytest.CaptureFixture[bytes],
+) -> None:
+    arguments = ["--config", str(CONFIG), "--domain", "example.test"]
+
+    assert main(["render", "pacc", *arguments]) == 0
+    body = capsysbinary.readouterr().out
+    assert main(["pacc", "digest", *arguments]) == 0
+    digest = capsysbinary.readouterr().out.decode("ascii").strip()
+
+    assert digest == pacc_digest_record(body)
+
+
+def test_render_autoconfig_preserves_static_document_and_asgi_parity(
+    tmp_path: Path,
+    capsysbinary: pytest.CaptureFixture[bytes],
+) -> None:
+    expected = (
+        b'<?xml version="1.0"?><clientConfig version="1.2">'
+        b'<emailProvider id="example.test"/></clientConfig>'
+    )
+    (tmp_path / "autoconfig.xml").write_bytes(expected)
+    config = tmp_path / "automx.conf"
+    config.write_text(
+        """
+[automx]
+provider = example.test
+domains = example.test
+[global]
+backend = file
+autoconfig = autoconfig.xml
+""",
+        encoding="utf-8",
+    )
+
+    assert (
+        main(
+            [
+                "render",
+                "autoconfig",
+                "--config",
+                str(config),
+                "--email",
+                "probe@example.test",
+            ]
+        )
+        == 0
+    )
+    cli_body = capsysbinary.readouterr().out
+    response = TestClient(create_app(config_path=config)).get(
+        "/mail/config-v1.1.xml",
+        params={"emailaddress": "probe@example.test"},
+    )
+
+    assert cli_body == expected
+    assert response.content == cli_body
+
+
+def test_render_errors_are_diagnostics_only(
+    capsysbinary: pytest.CaptureFixture[bytes],
+) -> None:
+    assert (
+        main(
+            [
+                "render",
+                "autoconfig",
+                "--config",
+                str(CONFIG),
+                "--email",
+                "not-an-address",
+            ]
+        )
+        == 2
+    )
+    captured = capsysbinary.readouterr()
+    assert captured.out == b""
+    assert captured.err.startswith(b"automx: invalid email address")
+
+    assert (
+        main(
+            [
+                "render",
+                "autodiscover",
+                "--config",
+                str(ROOT / "contrib/production-example/automx.conf"),
+                "--email",
+                "probe@example.test",
+                "--schema",
+                "mobilesync",
+            ]
+        )
+        == 2
+    )
+    captured = capsysbinary.readouterr()
+    assert captured.out == b""
+    assert b"ActiveSync" in captured.err
+
+
+def test_render_help_has_no_credentials_or_network_mutation_options(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exited:
+        build_parser().parse_args(["render", "autodiscover", "--help"])
+    assert exited.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "--email" in help_text
+    assert "--schema {outlook,mobilesync}" in help_text
+    for forbidden in ("--password", "--token", "--apply", "--url", "--nameserver"):
+        assert forbidden not in help_text

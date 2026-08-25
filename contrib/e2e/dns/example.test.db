@@ -1,0 +1,11 @@
+$ORIGIN example.test.
+$TTL 300
+@ IN SOA ns.example.test. hostmaster.example.test. 2026082501 3600 600 86400 300
+@ IN NS ns.example.test.
+ns IN A 192.0.2.53
+autoconfig IN CNAME automx.example.net.
+autodiscover IN CNAME automx.example.net.
+_autodiscover._tcp IN SRV 0 0 443 automx.example.net.
+ua-auto-config IN CNAME automx.example.net.
+_ua-auto-config IN TXT "d=x4UCWvDe1w8ERAAFF8yaWut70DP8PNqw+p0oRsr6zxE=;a=sha256;v=UAAC1;x=rollover;"
+_ua-auto-config IN TXT "v=UAAC1; a=sha256; d=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="

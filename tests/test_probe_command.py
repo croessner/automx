@@ -107,19 +107,21 @@ def test_every_remote_probe_contract_against_the_real_asgi_app() -> None:
 
 
 def test_autodiscover_probe_accepts_the_schema_error_when_mobile_sync_is_absent() -> None:
-    client: Any = LocalProbeClient(ROOT / "contrib/node1/automx.conf")
+    client: Any = LocalProbeClient(ROOT / "contrib/production-example/automx.conf")
 
-    results = probe.probe_autodiscover(client, "probe@roessner-net.de", False)
+    results = probe.probe_autodiscover(client, "probe@example.test", False)
 
     assert results[0].status == "passed"
     assert "not configured" in results[0].detail
 
 
 def test_autodiscover_probe_rejects_a_different_mobile_sync_error() -> None:
-    client: Any = InvalidMobileSyncProbeClient(ROOT / "contrib/node1/automx.conf")
+    client: Any = InvalidMobileSyncProbeClient(
+        ROOT / "contrib/production-example/automx.conf"
+    )
 
     with pytest.raises(ValueError, match="does not contain MobileSync"):
-        probe.probe_autodiscover(client, "probe@roessner-net.de", False)
+        probe.probe_autodiscover(client, "probe@example.test", False)
 
 
 def test_probe_all_cli_reports_json_and_local_pacc_parity(
@@ -189,6 +191,9 @@ def test_probe_http_client_validates_origin_auth_and_response_bounds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     opener = FakeOpener(FakeResponse(b"ok"))
+    context = probe.ssl.create_default_context()
+    context.minimum_version = probe.ssl.TLSVersion.TLSv1_2
+    monkeypatch.setattr(probe.ssl, "create_default_context", lambda: context)
     monkeypatch.setattr(probe.urllib.request, "build_opener", lambda *_handlers: opener)
     monkeypatch.setenv("AUTOMX_TEST_BASIC", "operator:synthetic-credential")
     client = probe.ProbeClient(
@@ -205,6 +210,7 @@ def test_probe_http_client_validates_origin_auth_and_response_bounds(
     assert opener.last_request.get_header("Authorization", "").startswith("Basic ")
     assert opener.last_request.get_header("Content-type") == "text/plain"
     assert opener.last_timeout == 2
+    assert context.minimum_version == probe.ssl.TLSVersion.TLSv1_3
 
     opener.response = FakeResponse(b"wrong", status=201)
     with pytest.raises(ValueError, match="expected 200"):

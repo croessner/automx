@@ -1,15 +1,16 @@
 # automx
 
 automx is a standards-oriented automatic account configuration service for
-mail and groupware clients. Version 1.2 is a Python 3.14, FastAPI, and pure-ASGI
-modernization of the original automx codebase.
+mail and groupware clients. Version 3.0 is a Python 3.14, FastAPI, and pure-ASGI
+modernization of the original automx codebase. The current preview is
+`3.0.0-beta.1`.
 
 It serves:
 
 - Mail Autoconfig XML 1.2;
 - Microsoft Autodiscover XML for Outlook and MobileSync;
 - a deliberately narrow, experimental Autodiscover v2 subset;
-- PACC JSON according to `draft-ietf-mailmaint-pacc-02`;
+- PACC JSON according to `draft-ietf-mailmaint-pacc-03`;
 - password-free Apple Mail `.mobileconfig` profiles;
 - OAuth public-client metadata without publishing client secrets.
 
@@ -49,14 +50,23 @@ maintainable Python subcommand modules.
 automx config validate --config /etc/automx/automx.conf
 automx openapi check --config /etc/automx/automx.conf
 automx openapi export --config /etc/automx/automx.conf --output openapi.json
+automx render autoconfig --config /etc/automx/automx.conf \
+  --email probe@example.com
+automx render autodiscover --config /etc/automx/automx.conf \
+  --email probe@example.com --schema outlook
+automx render pacc --config /etc/automx/automx.conf --domain example.com
 automx pacc digest --config /etc/automx/automx.conf --domain example.com
 automx dns records --config /etc/automx/automx.conf \
   --domain example.com --service-host config.example.net
+automx dns check --config /etc/automx/automx.conf \
+  --service-host config.example.net --nameserver 192.0.2.53
 automx probe all --base-url https://autodiscover.example.com \
   --email probe@example.com --include-experimental
 ```
 
-DNS commands only print a deployment plan; they never modify DNS. A protected
+Render commands write the exact local protocol bytes without starting a server.
+DNS commands generate or verify the complete read-only deployment contract;
+none of these commands modifies external state. A protected
 probe can read `username:password` from an explicitly named environment
 variable with `--basic-auth-env`; credentials are never accepted as CLI
 arguments.

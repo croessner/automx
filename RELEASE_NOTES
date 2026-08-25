@@ -1,5 +1,5 @@
-automx 1.2.0
-===========
+automx 3.0.0-beta.1
+====================
 
 This release is a ground-up modernization of the established automx service.
 It requires CPython 3.14, runs as a pure FastAPI/ASGI application, and replaces
@@ -7,12 +7,15 @@ the historical shell client with the modular `automx` operator CLI.
 
 Protocol work includes Mail Autoconfig XML 1.2, corrected Outlook and
 MobileSync Autodiscover XML, an opt-in experimental Autodiscover v2 subset,
-PACC-02 with exact UAAC1 DNS digests, OAuth public-client/DCR metadata, and
+PACC-03 with exact UAAC1 DNS digests, OAuth public-client/DCR metadata, and
 password-free Apple Mobileconfig profiles.
 
 Deployment now includes a hardened non-root container, a Docker Compose E2E
 stack, deterministic OpenAPI export, SPDX and CycloneDX SBOM targets, and
-vulnerability/secret scan gates. Review `docs/migration.md` before upgrading.
+vulnerability/secret scan gates. The CLI can emit and read-only verify the full
+DNS contract for every configured domain, and render the exact local
+Autoconfig, Autodiscover, and PACC document bytes without starting the server.
+Review `docs/migration.md` before upgrading.
 
 The IETF specifications used by several features are Internet-Drafts. Their
 exact pinned versions are listed in `docs/protocols/status.md`.

@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = "1.2.0"
+__version__ = "3.0.0-beta.1"
 __author__ = "Christian Roessner, Patrick Ben Koetter"
 __copyright__ = "Copyright (c) 2011-2026 Christian Roessner and contributors"
 

@@ -15,7 +15,12 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from automx import __version__
 from automx.configuration import ConfigurationError, ConfigurationRepository
-from automx.renderers.autoconfig import AutoconfigRenderError, render_autoconfig
+from automx.documents import (
+    autoconfig_document,
+    autodiscover_document,
+    pacc_document,
+)
+from automx.renderers.autoconfig import AutoconfigRenderError
 from automx.renderers.autodiscover import (
     MOBILE_RESPONSE_NAMESPACE,
     OUTLOOK_RESPONSE_NAMESPACE,
@@ -24,8 +29,6 @@ from automx.renderers.autodiscover import (
     AutodiscoverSchema,
     parse_autodiscover_request,
     render_autodiscover_error,
-    render_mobile,
-    render_outlook,
 )
 from automx.renderers.autodiscover_v2 import AutodiscoverV2Error, render_autodiscover_v2
 from automx.renderers.mobileconfig import MobileconfigRenderError, render_mobileconfig
@@ -34,13 +37,12 @@ from automx.renderers.mobileconfig_form import (
     render_mobileconfig_script,
     render_mobileconfig_styles,
 )
-from automx.renderers.pacc import PaccRenderError, render_pacc
+from automx.renderers.pacc import PaccRenderError
 from automx.requests import RequestContractError, parse_form_request, parse_xml_request
 from automx.settings import AppSettings
 from automx.static_documents import (
     StaticDocumentError,
     load_static_mobileconfig,
-    load_static_xml,
 )
 
 _ACCESS_LOG = logging.getLogger("automx.access")
@@ -174,7 +176,7 @@ def create_app(
         version=__version__,
         description="Standards-oriented automatic account configuration service",
         openapi_tags=[
-            {"name": "PACC", "description": "PACC-02 user-agent configuration."},
+            {"name": "PACC", "description": "PACC-03 user-agent configuration."},
             {"name": "Autoconfig", "description": "Mail Autoconfig 1.2 XML."},
             {"name": "Autodiscover", "description": "Microsoft Autodiscover XML."},
             {
@@ -311,7 +313,7 @@ def create_app(
     @app.get(
         "/.well-known/user-agent-configuration.json",
         tags=["PACC"],
-        summary="Get the PACC-02 configuration document",
+        summary="Get the PACC-03 configuration document",
         operation_id="get_pacc_configuration",
     )
     async def pacc(request: Request) -> Response:
@@ -322,7 +324,7 @@ def create_app(
         )
         if domain is None:
             raise RequestContractError(404, "not_found", "not found")
-        body = render_pacc(repository.resolve(f"pacc@{domain}"))
+        body = pacc_document(repository, domain)
         return Response(content=body, media_type="application/json")
 
     @app.get(
@@ -359,8 +361,7 @@ def create_app(
                     "emailaddress is required for wildcard configurations",
                 )
             selected_address = f"autoconfig@{synthetic_domain}"
-        profile = repository.resolve(selected_address)
-        body = load_static_xml(profile, "autoconfig") or render_autoconfig(profile)
+        body = autoconfig_document(repository, selected_address)
         return Response(content=body, media_type="text/xml")
 
     @app.post(
@@ -395,7 +396,11 @@ def create_app(
             else MOBILE_RESPONSE_NAMESPACE
         )
         try:
-            profile = repository.resolve(autodiscover_request.email_address)
+            body = autodiscover_document(
+                repository,
+                autodiscover_request.email_address,
+                autodiscover_request.schema,
+            )
         except ConfigurationError:
             return Response(
                 content=render_autodiscover_error(
@@ -404,15 +409,6 @@ def create_app(
                     response_namespace=response_namespace,
                 ),
                 media_type="text/xml",
-            )
-        static_body = load_static_xml(profile, "autodiscover")
-        if static_body is not None:
-            return Response(content=static_body, media_type="text/xml")
-        try:
-            body = (
-                render_outlook(profile)
-                if autodiscover_request.schema is AutodiscoverSchema.OUTLOOK
-                else render_mobile(profile)
             )
         except AutodiscoverRenderError:
             return Response(

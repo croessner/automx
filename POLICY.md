@@ -2,7 +2,7 @@
 
 ## Supported baseline
 
-automx 1.2 supports CPython 3.14 and the dependency ranges declared in
+automx 3.0 supports CPython 3.14 and the dependency ranges declared in
 `pyproject.toml`. The supported server interface is ASGI. Historical Python 2,
 Python 3.8, WSGI, mod_wsgi, and `automx-test` deployments are unsupported.
 
@@ -68,4 +68,5 @@ ref is read back after publication and must equal the intended local commit.
 
 automx does not provision DNS, register OAuth clients, validate external issuer
 interoperability, act as an identity provider, or test actual mailbox login.
-The CLI emits DNS plans and protocol probes but performs no provider mutation.
+The CLI renders local documents, emits DNS plans, and performs protocol probes,
+but has no provider mutation path.

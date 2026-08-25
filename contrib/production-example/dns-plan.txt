@@ -1,0 +1,14 @@
+; Canonical host prerequisite (managed separately):
+; automx.example.test. A/AAAA -> deployment public addresses
+; domain=example.test
+autoconfig.example.test. 300 IN CNAME automx.example.test.
+autodiscover.example.test. 300 IN CNAME automx.example.test.
+_autodiscover._tcp.example.test. 300 IN SRV 0 0 443 automx.example.test.
+ua-auto-config.example.test. 300 IN CNAME automx.example.test.
+_ua-auto-config.example.test. 300 IN TXT "v=UAAC1; a=sha256; d=/N/sSu654CaLZHGdMpdsaeP1kAcVpp4NCjNcZiQ3CRg="
+; domain=example-mail.test
+autoconfig.example-mail.test. 300 IN CNAME automx.example.test.
+autodiscover.example-mail.test. 300 IN CNAME automx.example.test.
+_autodiscover._tcp.example-mail.test. 300 IN SRV 0 0 443 automx.example.test.
+ua-auto-config.example-mail.test. 300 IN CNAME automx.example.test.
+_ua-auto-config.example-mail.test. 300 IN TXT "v=UAAC1; a=sha256; d=/N/sSu654CaLZHGdMpdsaeP1kAcVpp4NCjNcZiQ3CRg="

@@ -34,7 +34,7 @@ PACC_SCHEMA = {
                 "jmap": {"$ref": "#/$defs/http-server"},
                 "managesieve": {"$ref": "#/$defs/text-server"},
                 "pop3": {"$ref": "#/$defs/text-server"},
-                "smtp": {"$ref": "#/$defs/text-server"},
+                "submit": {"$ref": "#/$defs/text-server"},
                 "webdav": {"$ref": "#/$defs/http-server"},
             },
         },
@@ -130,7 +130,7 @@ def pacc_profile() -> AccountProfile:
     )
 
 
-def test_pacc_02_output_validates_against_draft_2020_12_schema() -> None:
+def test_pacc_03_output_validates_against_draft_2020_12_schema() -> None:
     body = render_pacc(pacc_profile())
     document = json.loads(body)
     Draft202012Validator(PACC_SCHEMA).validate(document)
@@ -149,7 +149,7 @@ def test_pacc_02_output_validates_against_draft_2020_12_schema() -> None:
             "imap": {"host": "imap.example.test"},
             "jmap": {"url": "https://jmap.example.test/session"},
             "pop3": {"host": "pop.example.test"},
-            "smtp": {"host": "smtp.example.test"},
+            "submit": {"host": "smtp.example.test"},
         },
     }
 
@@ -160,7 +160,7 @@ def test_pacc_bytes_and_uaac1_digest_are_deterministic() -> None:
     expected_digest = base64.b64encode(hashlib.sha256(body).digest()).decode("ascii")
     assert pacc_digest_record(body) == f"v=UAAC1; a=sha256; d={expected_digest}"
     assert pacc_digest_record(body) == (
-        "v=UAAC1; a=sha256; d=MOA19C2fw1LnfpriQEArPk+FRkxoE7UVaunADBmu7G8="
+        "v=UAAC1; a=sha256; d=Yv17O1u1N+KeOhLF0eZv/RNE2t6o6NHAYCskZubeISE="
     )
 
 
@@ -284,3 +284,31 @@ def test_pacc_rejects_missing_provider_info_and_non_draft_endpoints() -> None:
     )
     with pytest.raises(PaccRenderError, match="explicit port"):
         render_pacc(explicit_https_port)
+
+    bare_http_origin = pacc_profile().model_copy(
+        update={
+            "servers": (
+                Server(
+                    protocol=Protocol.WEBDAV,
+                    url="https://files.example.test/",
+                ),
+            )
+        }
+    )
+    with pytest.raises(PaccRenderError, match="context path"):
+        render_pacc(bare_http_origin)
+
+    managesieve_without_direct_tls_port = pacc_profile().model_copy(
+        update={
+            "servers": (
+                Server(
+                    protocol=Protocol.MANAGESIEVE,
+                    host="sieve.example.test",
+                    port=4190,
+                    tls=TLSMode.STARTTLS,
+                ),
+            )
+        }
+    )
+    with pytest.raises(PaccRenderError, match="direct-TLS port"):
+        render_pacc(managesieve_without_direct_tls_port)

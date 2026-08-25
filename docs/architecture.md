@@ -11,7 +11,8 @@ HTTP request
   -> bounded request parser
   -> ConfigurationRepository
   -> immutable AccountProfile and Server models
-  -> protocol-specific renderer
+  -> shared document service
+  -> validated static document or protocol-specific renderer
   -> framework Response
 ```
 
@@ -19,11 +20,16 @@ HTTP request
 body limits, and safe XML parsing. `configuration.py` reads compatible INI
 configuration and resolves one profile per request. `backends.py` isolates
 optional LDAP, SQL, and script lookups. `domain.py` contains strict frozen
-Pydantic models. Renderers cannot access HTTP state or backend credentials.
+Pydantic models. `documents.py` is the single composition point used by ASGI,
+local rendering, PACC digest generation, and DNS planning. Renderers cannot
+access HTTP state or backend credentials.
 
-The modular CLI in `automx.commands` consumes the same repository, renderer,
-and app factory. Consequently PACC DNS digests are computed over the same bytes
-as the HTTP response, and offline OpenAPI exports describe the actual routes.
+The modular CLI in `automx.commands` consumes the same repository, document
+service, and app factory. `automx.dns_contracts` isolates normalized, bounded DNS
+resolution behind an injectable resolver protocol; it neither reads service
+configuration nor mutates a provider. Consequently PACC DNS digests are
+computed over the same bytes as the HTTP response, and offline OpenAPI exports
+describe the actual routes.
 
 ## Trust boundaries
 
@@ -34,6 +40,8 @@ as the HTTP response, and offline OpenAPI exports describe the actual routes.
 - OAuth authorization-server metadata is published as a discovery pointer;
   automx is not an authorization server or dynamic registration endpoint.
 - Autodiscover v2 URLs come only from configuration, never from request input.
+- DNS checks compare only generated required owners through a bounded read-only
+  resolver. They have no provider credentials, zone-transfer, or apply path.
 
 Access logging records method, path, and status only. Query strings, request
 bodies, cookies, authorization headers, and resolved account data are excluded.

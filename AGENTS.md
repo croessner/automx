@@ -72,6 +72,8 @@ These instructions apply to the whole repository.
   bound parameters. LDAP certificate verification remains fail-closed.
 - CLI DNS functionality is read-only unless a future user explicitly requests
   and authorizes a separately designed apply workflow.
+- CLI document rendering must call the shared ASGI document service, write only
+  exact document bytes to stdout, and expose no credential or mutation option.
 
 ## Required gates
 

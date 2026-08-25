@@ -1,6 +1,6 @@
 # ASGI and container deployment
 
-automx 1.2 is ASGI-only. Run it with the packaged command:
+automx 3.0 is ASGI-only. Run it with the packaged command:
 
 ```console
 automx serve --config /etc/automx/automx.conf --host 127.0.0.1 --port 8000

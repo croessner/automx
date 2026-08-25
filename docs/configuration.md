@@ -41,9 +41,13 @@ Authentication values may be ordered with commas or spaces: `plaintext`,
 `smtp-after-pop`, and `client-ip-address`. The safe username default is
 `%EMAILADDRESS%`; override it with `<service>_auth_identity`.
 
-PACC requires the fixed implicit-TLS ports defined by PACC-02: IMAP 993, POP3
-995, and SMTP 465. Other valid ports can still be represented in Autoconfig,
-Autodiscover, and Mobileconfig.
+PACC-03 publishes the configured SMTP submission endpoint as `submit` and
+requires fixed direct-TLS ports: IMAP 993, POP3 995, and Submission 465. The
+current draft lists ManageSieve but has no registered direct-TLS port, so automx
+fails closed instead of emitting an unusable PACC entry. Other valid ports can
+still be represented in Autoconfig, Autodiscover, and Mobileconfig. PACC
+CalDAV, CardDAV, and WebDAV URLs must identify a context path rather than a bare
+origin.
 
 ## URL services
 

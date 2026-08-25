@@ -1,0 +1,7 @@
+$ORIGIN example.net.
+$TTL 300
+@ IN SOA ns.example.net. hostmaster.example.net. 2026082501 3600 600 86400 300
+@ IN NS ns.example.net.
+ns IN A 192.0.2.53
+automx IN A 192.0.2.10
+automx IN AAAA 2001:db8::10

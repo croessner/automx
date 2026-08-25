@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 FROM ${PYTHON_IMAGE} AS runtime
 
-ARG VERSION=1.2.0
+ARG VERSION=3.0.0-beta.1
 LABEL org.opencontainers.image.title="automx" \
       org.opencontainers.image.description="Standards-oriented automatic account configuration service" \
       org.opencontainers.image.version="${VERSION}" \

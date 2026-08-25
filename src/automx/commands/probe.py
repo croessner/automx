@@ -66,8 +66,10 @@ class ProbeClient:
                 raise ValueError("basic-auth environment value must use username:password")
             token = base64.b64encode(credentials.encode()).decode("ascii")
             self._authorization = f"Basic {token}"
+        tls_context = ssl.create_default_context()
+        tls_context.minimum_version = ssl.TLSVersion.TLSv1_3
         self._opener = urllib.request.build_opener(
-            _NoRedirect(), urllib.request.HTTPSHandler(context=ssl.create_default_context())
+            _NoRedirect(), urllib.request.HTTPSHandler(context=tls_context)
         )
 
     def request(

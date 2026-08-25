@@ -24,6 +24,16 @@ with `automx probe pacc --config ...`. Reverse proxies must not pretty-print,
 compress incorrectly, or otherwise alter decoded JSON bytes without updating
 the DNS digest.
 
+`automx dns check` reports `MISS` when a required owner/type has no answer,
+`DRIFT` when published RDATA differs or CNAME indirection replaces a direct
+record required by the generated plan, and `ERROR` when the selected resolver
+view could not be completed. An error is not evidence that a record is absent;
+this includes failure of either canonical-host address-family lookup. Run
+authoritative servers separately from public recursive resolvers to distinguish
+source drift from propagation or cache state. The command never repairs DNS.
+Additional SRV values and PACC rollover TXT records are not drift when the
+generated SRV member or any valid UAAC1 SHA-256 digest still matches.
+
 Do not disable TLS verification to diagnose production. The probe CLI permits
 plain HTTP only with an explicit flag intended for isolated test networks; it
-does not provide an insecure HTTPS mode.
+does not provide an insecure HTTPS mode and requires TLS 1.3 or newer.

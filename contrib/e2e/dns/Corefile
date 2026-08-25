@@ -1,0 +1,9 @@
+example.test:1053 {
+    errors
+    file /zones/example.test.db
+}
+
+example.net:1053 {
+    errors
+    file /zones/example.net.db
+}

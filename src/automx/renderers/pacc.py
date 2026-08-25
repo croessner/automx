@@ -1,4 +1,4 @@
-"""PACC-02 JSON rendering and UAAC1 digest generation."""
+"""PACC-03 JSON rendering and UAAC1 digest generation."""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ from automx.domain import AccountProfile, AuthenticationMethod, Protocol, TLSMod
 
 
 class PaccRenderError(RuntimeError):
-    """A profile cannot be represented safely under PACC-02."""
+    """A profile cannot be represented safely under PACC-03."""
 
 
 _TEXT_PROTOCOLS: dict[Protocol, tuple[int, frozenset[TLSMode]]] = {
     Protocol.IMAP: (993, frozenset({TLSMode.SSL})),
     Protocol.POP3: (995, frozenset({TLSMode.SSL})),
     Protocol.SMTP: (465, frozenset({TLSMode.SSL})),
-    Protocol.MANAGESIEVE: (4190, frozenset({TLSMode.STARTTLS})),
 }
+_PACC_PROTOCOL_NAMES = {Protocol.SMTP: "submit"}
 _HTTP_PROTOCOLS = frozenset(
     {Protocol.JMAP, Protocol.CALDAV, Protocol.CARDDAV, Protocol.WEBDAV}
 )
@@ -44,9 +44,10 @@ def _validate_provider_text(value: str | None, *, name: str, maximum: int) -> st
 
 
 def render_pacc(profile: AccountProfile) -> bytes:
-    """Render compact deterministic JSON matching draft-ietf-mailmaint-pacc-02."""
+    """Render compact deterministic JSON matching draft-ietf-mailmaint-pacc-03."""
 
     protocols: dict[str, dict[str, str]] = {}
+    skipped_managesieve = False
     for server in profile.servers:
         if server.protocol in _TEXT_PROTOCOLS:
             expected_port, accepted_tls = _TEXT_PROTOCOLS[server.protocol]
@@ -56,15 +57,28 @@ def render_pacc(profile: AccountProfile) -> bytes:
                 )
             if server.host is None:  # enforced by the model
                 raise PaccRenderError(f"{server.protocol.value} has no host")
-            protocols.setdefault(server.protocol.value, {"host": server.host})
+            protocol_name = _PACC_PROTOCOL_NAMES.get(server.protocol, server.protocol.value)
+            protocols.setdefault(protocol_name, {"host": server.host})
+        elif server.protocol == Protocol.MANAGESIEVE:
+            skipped_managesieve = True
         elif server.protocol in _HTTP_PROTOCOLS:
             if server.url is None:  # enforced by the model
                 raise PaccRenderError(f"{server.protocol.value} has no URL")
             parts = urlsplit(server.url)
             if parts.port is not None:
                 raise PaccRenderError(f"{server.protocol.value} URL must not use an explicit port")
+            if server.protocol in {Protocol.CALDAV, Protocol.CARDDAV, Protocol.WEBDAV} and (
+                not parts.path or parts.path == "/"
+            ):
+                raise PaccRenderError(
+                    f"{server.protocol.value} URL must identify a WebDAV context path"
+                )
             protocols.setdefault(server.protocol.value, {"url": server.url})
     if not protocols:
+        if skipped_managesieve:
+            raise PaccRenderError(
+                "managesieve has no registered PACC-03 direct-TLS port"
+            )
         raise PaccRenderError("at least one PACC protocol is required")
 
     provider: dict[str, str] = {

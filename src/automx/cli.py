@@ -7,9 +7,12 @@ import sys
 from collections.abc import Callable, Sequence
 
 from automx import __version__
-from automx.commands import configuration, dns, openapi, pacc, probe, serve
+from automx.commands import configuration, dns, openapi, pacc, probe, render, serve
 from automx.configuration import ConfigurationError
+from automx.renderers.autoconfig import AutoconfigRenderError
+from automx.renderers.autodiscover import AutodiscoverRenderError
 from automx.renderers.pacc import PaccRenderError
+from automx.static_documents import StaticDocumentError
 
 Handler = Callable[[argparse.Namespace], int]
 
@@ -23,7 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for command in (serve, configuration, openapi, dns, pacc, probe):
+    for command in (serve, configuration, openapi, dns, pacc, probe, render):
         command.register(subparsers)
     return parser
 
@@ -35,6 +38,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     handler: Handler = args.handler
     try:
         return handler(args)
-    except (ConfigurationError, PaccRenderError, OSError, ValueError) as exc:
+    except (
+        AutoconfigRenderError,
+        AutodiscoverRenderError,
+        ConfigurationError,
+        PaccRenderError,
+        StaticDocumentError,
+        OSError,
+        ValueError,
+    ) as exc:
         print(f"automx: {exc}", file=sys.stderr)
         return 2

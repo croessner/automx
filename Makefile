@@ -33,7 +33,7 @@ audit:
 check: lint typecheck test
 
 docker-build:
-	docker build --build-arg VERSION=1.2.0 --tag $(IMAGE) .
+	docker build --build-arg VERSION=3.0.0-beta.1 --tag $(IMAGE) .
 
 e2e:
 	contrib/e2e/run.sh

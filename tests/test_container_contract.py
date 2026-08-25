@@ -40,6 +40,7 @@ def test_e2e_stack_and_probe_cover_every_public_protocol_family() -> None:
     compose = (ROOT / "contrib/e2e/compose.yaml").read_text(encoding="utf-8")
 
     assert "id -u" in runner
+    assert 'automx 3.0.0-beta.1' in runner
     assert "read-only filesystem" in runner
     for contract in (
         "probe",
@@ -50,5 +51,18 @@ def test_e2e_stack_and_probe_cover_every_public_protocol_family() -> None:
     ):
         assert contract in compose
     assert "openapi check" in runner
+    assert "render autoconfig" in runner
+    assert "render autodiscover" in runner
+    assert "--schema outlook" in runner and "--schema mobilesync" in runner
+    assert "render pacc" in runner
     assert "dns records" in runner
+    assert "dns check" in runner
+    assert "--nameserver" in runner and "--port 1053" in runner
+    assert "coredns/coredns:1.14.6@sha256:" in compose
+    assert "user: \"10001:10001\"" in compose
+    assert "NET_BIND_SERVICE" in compose
+    assert "/coredns\n        - -version" not in compose
+    assert "healthcheck:\n      disable: true" in compose
+    assert "r.resolve('automx.example.net','A')" in compose
+    assert "condition: service_started" in compose
     assert not (ROOT / "src/automx-test").exists()

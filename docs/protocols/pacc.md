@@ -1,16 +1,19 @@
-# PACC-02 and DNS verification
+# PACC-03 and DNS verification
 
-automx implements `draft-ietf-mailmaint-pacc-02`, an Internet-Draft and work in
+automx implements `draft-ietf-mailmaint-pacc-03`, an Internet-Draft and work in
 progress. It serves deterministic JSON at:
 
 ```text
 https://ua-auto-config.example.com/.well-known/user-agent-configuration.json
 ```
 
-The JSON contains only the protocol fields PACC defines. IMAP, POP3, and SMTP
-must use their PACC implicit-TLS ports (993, 995, and 465). HTTP services use
-absolute HTTPS URLs. OAuth public-client metadata contains only a validated
-issuer.
+The JSON contains only the protocol fields PACC defines. The configured SMTP
+service is published under the PACC `submit` key. IMAP, POP3, and Submission
+must use their PACC direct-TLS ports (993, 995, and 465). The draft currently
+defines no usable direct-TLS port for ManageSieve, so automx rejects that PACC
+profile rather than implying an interoperable endpoint. HTTP services use
+absolute HTTPS URLs; WebDAV-family entries cannot be bare origins. OAuth
+public-client metadata contains only a validated issuer.
 
 PACC discovery is complete only when `_ua-auto-config.example.com` publishes a
 TXT record containing the SHA-256 digest of the decoded HTTP response bytes:
@@ -34,3 +37,11 @@ automx probe pacc --base-url https://ua-auto-config.example.com \
   --email probe@example.com --config /etc/automx/automx.conf \
   --domain example.com
 ```
+
+Run `automx dns check` separately against every authoritative and desired
+recursive resolver view to prove that the generated service alias and UAAC1
+digest are complete and published. PACC permits multiple TXT RRs during a
+configuration transition and ignores tag order, separator whitespace, a final
+semicolon, and unknown future tags. The check therefore parses every TXT RR and
+passes when any valid SHA-256 digest matches the exact locally rendered bytes.
+Both DNS commands are read-only.

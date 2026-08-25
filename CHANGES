@@ -1,16 +1,17 @@
-* Version 1.2.0 - 2026 modernization
+* Version 3.0.0-beta.1 - 2026 modernization preview
 ---------------------------------
 - Require CPython 3.14 and use pyproject-based packaging
 - Replace WSGI with FastAPI, ASGI, and Uvicorn
 - Implement Mail Autoconfig 1.2, corrected Autodiscover XML, experimental
-  Autodiscover v2, PACC-02, OAuth public-client metadata, and password-free
+  Autodiscover v2, PACC-03, OAuth public-client metadata, and password-free
   Mobileconfig
-- Add deterministic OpenAPI, a modular operator CLI, DNS record generation,
+- Add deterministic OpenAPI, a modular operator CLI, DNS record generation and
+  read-only multi-domain publication checks,
   Docker E2E, SPDX/CycloneDX SBOMs, and security scan gates
 - Omit invalid self-referential CNAMEs from generated DNS plans and add a
-  digest-pinned, hardened node1 production deployment contract
-- Prepare the node1 profile for Nauthilus OAuth discovery and future DCR
-  publication without inventing a registration endpoint
+  digest-pinned, hardened, synthetic production deployment example
+- Document OAuth discovery and future DCR publication without inventing a
+  registration endpoint
 - Let protocol probes validate the Microsoft 602 contract when MobileSync is
   intentionally not configured
 - Restore the browser-based Apple profile workflow with a password-free,
@@ -19,6 +20,8 @@
 - Cover negative MobileSync probe errors and document canonical DNS CNAME
   suppression
 - Replace the historical automx-test shell client with automx probe commands
+- Add credential-free local rendering of exact Autoconfig, both Autodiscover
+  schemas, and PACC bytes through the shared ASGI document service
 
 * Version 1.1.2
 ---------------------------------
