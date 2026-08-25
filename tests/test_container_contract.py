@@ -44,7 +44,7 @@ def test_e2e_stack_and_probe_cover_every_public_protocol_family() -> None:
     compose = (ROOT / "contrib/e2e/compose.yaml").read_text(encoding="utf-8")
 
     assert "id -u" in runner
-    assert 'automx 3.0.0-beta.1' in runner
+    assert 'automx 3.0.0-beta.2' in runner
     assert "read-only filesystem" in runner
     for contract in (
         "probe",

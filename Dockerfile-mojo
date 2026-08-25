@@ -42,7 +42,7 @@ RUN mkdir -p /out/mojo-runtime \
 
 FROM ${PYTHON_IMAGE} AS runtime
 
-ARG VERSION=3.0.0-beta.1
+ARG VERSION=3.0.0-beta.2
 ARG REVISION=unknown
 ARG BUILD_REASON=local
 ARG PYTHON_BASE_DIGEST

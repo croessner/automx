@@ -113,16 +113,6 @@ jobs:
           python-version: "3.14"
           cache: pip
 
-      - name: Install native backend build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes build-essential libldap2-dev libsasl2-dev libssl-dev
-
-      - name: Install package-build dependencies
-        run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install -e '.[package,ldap,sql,cache]'
-
       - name: Validate release metadata
         id: release
         run: |
@@ -131,35 +121,13 @@ jobs:
             "${GITHUB_REF_NAME}" \
             "${project_version}" >> "${GITHUB_OUTPUT}"
 
-      - name: Build and smoke-test standalone runtime
-        run: |
-          make package-root PACKAGE_ROOT=.pkgroot STANDALONE_DIR=dist/standalone
-          dist/standalone/automx/automx --version
-          dist/standalone/automx/automx config validate \
-            --config contrib/e2e/automx.conf \
-            --domain example.test
-
-      - name: Build DEB
-        uses: jiro4989/build-deb-action@a883c65147d80579cb359548b9a902ff0a35ae5b # v4.3.0
+      - name: Build and inspect native packages
+        uses: ./.github/actions/build-linux-packages
         with:
-          package: automx
-          package_root: .pkgroot
-          maintainer: Christian Roessner
-          version: ${{ steps.release.outputs.package_version }}
-          arch: ${{ matrix.deb_arch }}
-          desc: Standards-oriented automatic account configuration service
-
-      - name: Build RPM
-        if: matrix.build_rpm
-        uses: jiro4989/build-rpm-action@f11474937f502aaa8bb36d8c1a8ec6f8de536a0c # v2.5.0
-        with:
-          package: automx
-          package_root: .pkgroot
-          maintainer: Christian Roessner
-          version: ${{ steps.release.outputs.package_version }}
-          arch: ${{ matrix.rpm_arch }}
-          desc: Standards-oriented automatic account configuration service
-          summary: Standards-oriented automatic account configuration service
+          package-version: ${{ steps.release.outputs.package_version }}
+          deb-arch: ${{ matrix.deb_arch }}
+          rpm-arch: ${{ matrix.rpm_arch }}
+          build-rpm: ${{ matrix.build_rpm }}
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

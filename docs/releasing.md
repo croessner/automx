@@ -11,8 +11,9 @@ are not accepted by the new release workflow.
 
 `.github/workflows/ci.yml` runs for both long-lived branches and their pull
 requests. It checks Ruff, strict Mypy, tests, coverage, dependency audit, Python
-distributions, and workflow syntax. A separate job runs the complete Python
-container E2E suite and a Mojo image smoke test.
+distributions, and workflow syntax. Separate jobs run the complete Python
+container E2E suite, a Mojo image smoke test, and native AMD64/ARM64 Linux
+package builds through the same local action used by the release workflow.
 
 All external actions are pinned to full commit IDs. Dependabot proposes Python,
 GitHub Actions, and Docker dependency updates against `features`.
@@ -32,7 +33,7 @@ It requires Docker, Actionlint, Syft, Trivy, and the `package` Python extra.
 2. Update version-specific protocol and operator documentation.
 3. Merge the reviewed release state into `main` and run `make release-guardrails`.
 4. Create and push an annotated SemVer tag that exactly matches the project
-   version, for example `v3.0.0-beta.1`.
+   version, for example `v3.0.0-beta.2`.
 
 The tag starts `.github/workflows/release.yml`. The workflow repeats the Python
 gates, validates tag/version parity, builds sdist and wheel artifacts, calls the
@@ -85,8 +86,11 @@ itself.
 ## DEB and RPM packages
 
 The release workflow builds a self-contained PyInstaller `onedir` runtime. It
-does not depend on a compatible system Python. Release assets include DEB for
-`amd64` and `arm64`, plus RPM for `x86_64`.
+does not depend on a compatible system Python. A repository-owned, shell-free
+builder calls native `dpkg-deb` and `rpmbuild` commands with bounded arguments;
+it copies the complete staged filesystem so payload filenames are never
+reinterpreted as shell words. Release assets include DEB built on matching
+`amd64` and `arm64` runners, plus RPM for `x86_64`.
 
 The packages install:
 

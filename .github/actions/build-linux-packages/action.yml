@@ -1,0 +1,86 @@
+---
+name: Build native Linux packages
+description: Build and inspect automx DEB and optional RPM artifacts
+
+inputs:
+  package-version:
+    description: Normalized native package version
+    required: true
+  deb-arch:
+    description: Debian package architecture for the native runner
+    required: true
+  rpm-arch:
+    description: RPM package architecture
+    required: true
+  build-rpm:
+    description: Whether this runner also builds the RPM artifact
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install native package build dependencies
+      shell: bash
+      env:
+        BUILD_RPM: ${{ inputs.build-rpm }}
+      run: |
+        case "${BUILD_RPM}" in
+          true|false) ;;
+          *) echo "build-rpm must be true or false" >&2; exit 2 ;;
+        esac
+        packages=(
+          build-essential
+          dpkg-dev
+          libldap2-dev
+          libsasl2-dev
+          libssl-dev
+        )
+        if [[ "${BUILD_RPM}" == "true" ]]; then
+          packages+=(rpm)
+        fi
+        sudo apt-get update
+        sudo apt-get install --yes "${packages[@]}"
+
+    - name: Install standalone build dependencies
+      shell: bash
+      run: |
+        python -m venv .venv
+        .venv/bin/python -m pip install -e '.[package,ldap,sql,cache]'
+
+    - name: Build and smoke-test standalone runtime
+      shell: bash
+      run: |
+        make package-root PACKAGE_ROOT=.pkgroot STANDALONE_DIR=dist/standalone
+        dist/standalone/automx/automx --version
+        dist/standalone/automx/automx config validate \
+          --config contrib/e2e/automx.conf \
+          --domain example.test
+
+    - name: Build and inspect DEB
+      shell: bash
+      env:
+        DEB_ARCH: ${{ inputs.deb-arch }}
+        PACKAGE_VERSION: ${{ inputs.package-version }}
+      run: |
+        .venv/bin/python scripts/build-linux-package.py deb \
+          --package-root .pkgroot \
+          --output-dir . \
+          --version "${PACKAGE_VERSION}" \
+          --arch "${DEB_ARCH}"
+        dpkg-deb --info "automx_${PACKAGE_VERSION}_${DEB_ARCH}.deb"
+        dpkg-deb --contents "automx_${PACKAGE_VERSION}_${DEB_ARCH}.deb" >/dev/null
+
+    - name: Build and inspect RPM
+      if: inputs.build-rpm == 'true'
+      shell: bash
+      env:
+        PACKAGE_VERSION: ${{ inputs.package-version }}
+        RPM_ARCH: ${{ inputs.rpm-arch }}
+      run: |
+        .venv/bin/python scripts/build-linux-package.py rpm \
+          --package-root .pkgroot \
+          --output-dir . \
+          --version "${PACKAGE_VERSION}" \
+          --arch "${RPM_ARCH}"
+        rpm -qpi "automx-${PACKAGE_VERSION}-1.${RPM_ARCH}.rpm"
+        rpm -qpl "automx-${PACKAGE_VERSION}-1.${RPM_ARCH}.rpm" >/dev/null

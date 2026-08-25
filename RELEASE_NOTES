@@ -1,4 +1,4 @@
-automx 3.0.0-beta.1
+automx 3.0.0-beta.2
 ====================
 
 This release is a ground-up modernization of the established automx service.
@@ -19,6 +19,11 @@ Autoconfig, Autodiscover, Mobileconfig, and PACC document bytes without starting
 the server. Mobileconfig signature status is reported separately from exact
 profile bytes and distinguishes cryptographic integrity from device trust.
 Review `docs/migration.md` before upgrading.
+
+Beta 2 replaces architecture-incompatible third-party Linux package actions
+with a bounded, shell-free native package builder. DEB artifacts are built on
+their matching amd64 or arm64 runner, while RPM creation copies the complete
+staged filesystem without splitting filenames that contain spaces.
 
 The IETF specifications used by several features are Internet-Drafts. Their
 exact pinned versions are listed in `docs/protocols/status.md`.

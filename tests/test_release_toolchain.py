@@ -195,6 +195,122 @@ def test_package_root_contains_standalone_runtime_and_hardened_unit(tmp_path: Pa
     assert (package_root / "usr/share/doc/automx/automx.conf.example").is_file()
 
 
+def test_linux_package_builder_preserves_paths_and_metadata(tmp_path: Path) -> None:
+    package_root = tmp_path / "package root"
+    payload = package_root / "opt/automx/_internal/setuptools/_vendor/jaraco/text"
+    payload.mkdir(parents=True)
+    (payload / "Lorem ipsum.txt").write_text("synthetic package data\n", encoding="utf-8")
+    (package_root / "usr/bin").mkdir(parents=True)
+    (package_root / "usr/bin/automx").symlink_to("/opt/automx/automx")
+
+    bin_dir = tmp_path / "bin"
+    capture_dir = tmp_path / "capture"
+    output_dir = tmp_path / "output"
+    bin_dir.mkdir()
+    capture_dir.mkdir()
+    output_dir.mkdir()
+    fake_tool = """#!/usr/bin/env python3
+import os
+import shutil
+import sys
+from pathlib import Path
+
+capture = Path(os.environ["AUTOMX_TEST_CAPTURE"])
+if Path(sys.argv[0]).name == "dpkg-deb":
+    package_root = Path(sys.argv[-2])
+    assert (package_root / "opt/automx/_internal/setuptools/_vendor/jaraco/text/Lorem ipsum.txt").is_file()
+    shutil.copy2(package_root / "DEBIAN/control", capture / "deb-control")
+    Path(sys.argv[-1]).touch()
+else:
+    definitions = {}
+    for index, argument in enumerate(sys.argv):
+        if argument == "--define":
+            name, value = sys.argv[index + 1].split(maxsplit=1)
+            definitions[name] = value
+    source_root = Path(definitions["_topdir"]) / "SOURCES/package-root"
+    assert (source_root / "opt/automx/_internal/setuptools/_vendor/jaraco/text/Lorem ipsum.txt").is_file()
+    shutil.copy2(Path(sys.argv[-1]), capture / "automx.spec")
+    (Path(definitions["_rpmdir"]) / definitions["_rpmfilename"]).touch()
+"""
+    for name in ("dpkg-deb", "rpmbuild"):
+        tool = bin_dir / name
+        tool.write_text(fake_tool, encoding="utf-8")
+        tool.chmod(0o755)
+    env = os.environ | {
+        "AUTOMX_TEST_CAPTURE": str(capture_dir),
+        "PATH": f"{bin_dir}:{os.environ['PATH']}",
+    }
+    builder = str(ROOT / "scripts/build-linux-package.py")
+
+    deb = _run(
+        builder,
+        "deb",
+        "--package-root",
+        str(package_root),
+        "--output-dir",
+        str(output_dir),
+        "--version",
+        "3.0.0~beta.2",
+        "--arch",
+        "arm64",
+        env=env,
+    )
+    rpm = _run(
+        builder,
+        "rpm",
+        "--package-root",
+        str(package_root),
+        "--output-dir",
+        str(output_dir),
+        "--version",
+        "3.0.0~beta.2",
+        "--arch",
+        "x86_64",
+        env=env,
+    )
+
+    assert deb.returncode == 0, deb.stderr
+    assert rpm.returncode == 0, rpm.stderr
+    assert (output_dir / "automx_3.0.0~beta.2_arm64.deb").is_file()
+    assert (output_dir / "automx-3.0.0~beta.2-1.x86_64.rpm").is_file()
+    control = (capture_dir / "deb-control").read_text(encoding="utf-8")
+    assert "Version: 3.0.0~beta.2" in control
+    assert "Architecture: arm64" in control
+    spec = (capture_dir / "automx.spec").read_text(encoding="utf-8")
+    assert "License: GPL-3.0-or-later" in spec
+    assert 'cp -a "%{_sourcedir}/package-root/." "%{buildroot}/"' in spec
+    assert "Lorem ipsum.txt" not in spec
+
+
+@pytest.mark.parametrize(
+    ("package_format", "version", "arch"),
+    [("deb", "3.0.0 beta.2", "arm64"), ("rpm", "3.0.0~beta.2", "aarch64")],
+)
+def test_linux_package_builder_rejects_unsafe_metadata(
+    tmp_path: Path,
+    package_format: str,
+    version: str,
+    arch: str,
+) -> None:
+    package_root = tmp_path / "package-root"
+    package_root.mkdir()
+
+    completed = _run(
+        str(ROOT / "scripts/build-linux-package.py"),
+        package_format,
+        "--package-root",
+        str(package_root),
+        "--output-dir",
+        str(tmp_path / "output"),
+        "--version",
+        version,
+        "--arch",
+        arch,
+    )
+
+    assert completed.returncode != 0
+
+
 def test_standalone_builder_resolves_python_from_path(tmp_path: Path) -> None:
     bin_dir = tmp_path / "bin"
     output_dir = tmp_path / "standalone"
@@ -254,8 +370,19 @@ def test_github_workflows_cover_ci_release_containers_and_packages() -> None:
     ]
     assert "docker logout ghcr.io" in workflows["containers.yml"]
     assert "container-refresh-check.sh" in workflows["containers.yml"]
-    assert "build-deb-action" in workflows["release.yml"]
-    assert "build-rpm-action" in workflows["release.yml"]
+    package_action = (ROOT / ".github/actions/build-linux-packages/action.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "./.github/actions/build-linux-packages" in workflows["ci.yml"]
+    assert "./.github/actions/build-linux-packages" in workflows["release.yml"]
+    assert "ubuntu-24.04-arm" in workflows["ci.yml"]
+    assert "ubuntu-24.04-arm" in workflows["release.yml"]
+    assert "scripts/build-linux-package.py deb" in package_action
+    assert "scripts/build-linux-package.py rpm" in package_action
+    assert "dpkg-deb --info" in package_action
+    assert "rpm -qpl" in package_action
+    assert "build-deb-action" not in workflows["release.yml"]
+    assert "build-rpm-action" not in workflows["release.yml"]
     assert "--generate-notes" in workflows["release.yml"]
     assert "attest-build-provenance" in workflows["release.yml"]
     assert "features" in workflows["dev-containers.yml"]
@@ -267,7 +394,7 @@ def test_github_workflows_cover_ci_release_containers_and_packages() -> None:
     assert "python -m pip install -e '.[dev]'" not in workflows["release.yml"]
     assert "cache: false" in workflows["ci.yml"]
     assert "cache: false" in workflows["release.yml"]
-    assert workflows["ci.yml"].count("cache: pip") == 1
+    assert workflows["ci.yml"].count("cache: pip") == 2
 
 
 def test_e2e_waits_on_the_composite_automx_healthcheck_only() -> None:

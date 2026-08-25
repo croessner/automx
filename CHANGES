@@ -1,3 +1,11 @@
+* Version 3.0.0-beta.2 - 2026 modernization preview
+---------------------------------
+- Build DEB packages natively on their matching amd64 and arm64 runners
+- Replace the path-splitting RPM action with a bounded, shell-free package
+  builder that preserves the complete staged filesystem
+- Correct native package license metadata and cover unsafe version,
+  architecture, and whitespace-path cases with release toolchain tests
+
 * Version 3.0.0-beta.1 - 2026 modernization preview
 ---------------------------------
 - Require CPython 3.14 and use pyproject-based packaging

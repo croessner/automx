@@ -65,3 +65,43 @@ jobs:
 
       - name: Build and smoke-test Mojo image
         run: make mojo-smoke MOJO_IMAGE=automx-mojo:ci
+
+  linux-packages:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            deb_arch: amd64
+            rpm_arch: x86_64
+            build_rpm: true
+          - runner: ubuntu-24.04-arm
+            deb_arch: arm64
+            rpm_arch: aarch64
+            build_rpm: false
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Resolve package version
+        id: release
+        run: |
+          project_version="$(python scripts/project-version.py)"
+          ./scripts/release-semver-metadata.sh \
+            "v${project_version}" \
+            "${project_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build and inspect native packages
+        uses: ./.github/actions/build-linux-packages
+        with:
+          package-version: ${{ steps.release.outputs.package_version }}
+          deb-arch: ${{ matrix.deb_arch }}
+          rpm-arch: ${{ matrix.rpm_arch }}
+          build-rpm: ${{ matrix.build_rpm }}
