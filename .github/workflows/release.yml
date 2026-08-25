@@ -37,8 +37,8 @@ jobs:
           project_version="$(python scripts/project-version.py)"
           ./scripts/release-semver-metadata.sh "${GITHUB_REF_NAME}" "${project_version}"
 
-      - name: Install development dependencies
-        run: python -m pip install -e '.[dev]'
+      - name: Bootstrap the repository environment
+        run: make bootstrap
 
       - name: Run Python release gates
         run: |
@@ -118,7 +118,9 @@ jobs:
           sudo apt-get install --yes build-essential libldap2-dev libsasl2-dev libssl-dev
 
       - name: Install package-build dependencies
-        run: python -m pip install -e '.[package,ldap,sql,cache]'
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -e '.[package,ldap,sql,cache]'
 
       - name: Validate release metadata
         id: release

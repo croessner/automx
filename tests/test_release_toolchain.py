@@ -261,6 +261,17 @@ def test_github_workflows_cover_ci_release_containers_and_packages() -> None:
     assert "features" in workflows["dev-containers.yml"]
     assert ":dev" in workflows["dev-containers.yml"]
     assert "docker logout ghcr.io" in workflows["dev-containers.yml"]
+    assert "run: make bootstrap" in workflows["ci.yml"]
+    assert "run: make bootstrap" in workflows["release.yml"]
+    assert "python -m pip install -e '.[dev]'" not in workflows["ci.yml"]
+    assert "python -m pip install -e '.[dev]'" not in workflows["release.yml"]
+
+
+def test_e2e_waits_on_the_composite_automx_healthcheck_only() -> None:
+    runner = (ROOT / "contrib/e2e/run.sh").read_text(encoding="utf-8")
+
+    assert '--build --detach --wait automx\n' in runner
+    assert '--build --detach --wait automx dns' not in runner
 
 
 def test_external_actions_are_pinned_to_commit_shas() -> None:

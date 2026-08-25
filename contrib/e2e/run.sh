@@ -11,7 +11,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 docker compose --project-name "$project_name" --file "$compose_file" up \
-    --build --detach --wait automx dns
+    --build --detach --wait automx
 
 runtime_uid=$(docker compose --project-name "$project_name" --file "$compose_file" exec -T automx id -u)
 if [ "$runtime_uid" = "0" ]; then
