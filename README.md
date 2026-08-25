@@ -1,9 +1,13 @@
 # automx
 
+> **automx, reloaded — standards-first configuration for modern mail clients.**
+
 automx is a standards-oriented automatic account configuration service for
 mail and groupware clients. Version 3.0 is a Python 3.14, FastAPI, and pure-ASGI
 modernization of the original automx codebase. The current preview is
 `3.0.0-beta.1`.
+
+automx is developed in collaboration with sys4 AG.
 
 It serves:
 
