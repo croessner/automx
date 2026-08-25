@@ -4,7 +4,7 @@ BIN := $(VENV)/bin
 
 IMAGE ?= automx:dev
 
-.PHONY: bootstrap test coverage lint format typecheck audit check docker-build e2e sbom scan clean
+.PHONY: bootstrap test coverage lint format typecheck audit check docker-build docker-build-mojo e2e sbom scan clean
 
 bootstrap:
 	$(PYTHON) -m venv $(VENV)
@@ -34,6 +34,9 @@ check: lint typecheck test
 
 docker-build:
 	docker build --build-arg VERSION=3.0.0-beta.1 --tag $(IMAGE) .
+
+docker-build-mojo:
+	docker build --file Dockerfile-mojo --build-arg VERSION=3.0.0-beta.1 --tag $(IMAGE) .
 
 e2e:
 	contrib/e2e/run.sh
