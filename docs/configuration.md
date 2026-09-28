@@ -64,6 +64,15 @@ endpoints as `incomingServer` entries. REST, OAB, and Actions remain limited to
 the explicitly enabled experimental Autodiscover v2 surface. ManageSieve is
 published as the root-level `setupServer` element.
 
+Mobileconfig profiles add a password-free CalDAV and CardDAV account for each
+enabled `caldav` and `carddav` service. The host and port come from the
+configured URL, which is also published as the principal URL, and the username
+from `<service>_auth_identity`. A DAV service whose `<service>_auth` lists only
+methods other than `http-basic`, `http-digest`, or password authentication (for
+example only `oauth2`) is left out of the profile, because Apple account
+payloads support password logins only. WebDAV file shares have no Apple
+account payload and are not published there.
+
 ## OAuth public-client metadata
 
 ```ini
