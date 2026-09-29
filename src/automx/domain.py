@@ -68,6 +68,14 @@ def validate_https_url(value: str, *, field_name: str) -> str:
     if parts.username is not None or parts.password is not None:
         msg = f"{field_name} must not contain user information"
         raise ValueError(msg)
+    try:
+        port = parts.port
+    except ValueError as exc:
+        msg = f"{field_name} port must be an integer between 1 and 65535"
+        raise ValueError(msg) from exc
+    if port is not None and not 1 <= port <= 65535:
+        msg = f"{field_name} port must be an integer between 1 and 65535"
+        raise ValueError(msg)
     return value
 
 

@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from automx.app import create_app
 
 
-def config(tmp_path: Path) -> Path:
+def config(tmp_path: Path, extra: str = "") -> Path:
     path = tmp_path / "automx.conf"
     path.write_text(
         """
@@ -28,10 +28,31 @@ smtp_server = smtp.example.test
 smtp_port = 465
 smtp_encryption = ssl
 smtp_auth = plaintext
-""",
+"""
+        + extra,
         encoding="utf-8",
     )
     return path
+
+
+DAV_SERVICES = """
+caldav = yes
+caldav_url = https://dav.example.test/remote.php/dav/calendars/
+caldav_auth = http-basic
+carddav = yes
+carddav_url = https://contacts.example.test:8443/dav/
+carddav_auth = http-basic
+carddav_auth_identity = %EMAILLOCALPART%
+"""
+
+
+def render(tmp_path: Path, extra: str) -> dict[str, object]:
+    client = TestClient(create_app(config_path=config(tmp_path, extra)))
+    response = client.post(
+        "/mobileconfig", data={"_mobileconfig": "true", "emailaddress": "user@example.test"}
+    )
+    assert response.status_code == 200
+    return plistlib.loads(response.content)
 
 
 def test_mobileconfig_is_deterministic_and_contains_no_password(tmp_path: Path) -> None:
@@ -46,6 +67,7 @@ def test_mobileconfig_is_deterministic_and_contains_no_password(tmp_path: Path) 
     assert first.headers["content-type"].startswith("application/x-apple-aspen-config")
     assert first.headers["content-disposition"] == 'attachment; filename="automx.mobileconfig"'
     profile = plistlib.loads(first.content)
+    assert len(profile["PayloadContent"]) == 1
     mail = profile["PayloadContent"][0]
     assert mail["EmailAccountName"] == "Example User"
     assert mail["IncomingMailServerAuthentication"] == "EmailAuthPassword"
@@ -140,3 +162,61 @@ def test_mobileconfig_rejects_passwords_and_ambiguous_forms(tmp_path: Path) -> N
     )
     assert control_character.status_code == 400
     assert control_character.json()["error"] == "invalid_form"
+
+
+def test_mobileconfig_adds_password_free_caldav_and_carddav_accounts(tmp_path: Path) -> None:
+    mail_only = render(tmp_path, "")
+    profile = render(tmp_path, DAV_SERVICES)
+
+    mail, caldav, carddav = profile["PayloadContent"]  # type: ignore[misc]
+    assert mail == mail_only["PayloadContent"][0]  # type: ignore[index]
+    assert caldav["PayloadType"] == "com.apple.caldav.account"
+    assert caldav["CalDAVAccountDescription"] == "Example Mail"
+    assert caldav["CalDAVHostName"] == "dav.example.test"
+    assert caldav["CalDAVPort"] == 443
+    assert caldav["CalDAVUseSSL"] is True
+    assert caldav["CalDAVPrincipalURL"] == "https://dav.example.test/remote.php/dav/calendars/"
+    assert caldav["CalDAVUsername"] == "user@example.test"
+    assert caldav["PayloadIdentifier"] == f"{profile['PayloadIdentifier']}.caldav"
+    assert carddav["PayloadType"] == "com.apple.carddav.account"
+    assert carddav["CardDAVHostName"] == "contacts.example.test"
+    assert carddav["CardDAVPort"] == 8443
+    assert carddav["CardDAVUseSSL"] is True
+    assert carddav["CardDAVPrincipalURL"] == "https://contacts.example.test:8443/dav/"
+    assert carddav["CardDAVUsername"] == "user"
+    assert carddav["PayloadIdentifier"] == f"{profile['PayloadIdentifier']}.carddav"
+    uuids = {payload["PayloadUUID"] for payload in (mail, caldav, carddav)}
+    assert len(uuids | {profile["PayloadUUID"]}) == 4
+    assert "CalDAVPassword" not in caldav
+    assert "CardDAVPassword" not in carddav
+
+
+def test_mobileconfig_omits_dav_accounts_without_password_authentication(
+    tmp_path: Path,
+) -> None:
+    profile = render(
+        tmp_path,
+        """
+caldav = yes
+caldav_url = https://dav.example.test/calendars/
+caldav_auth = oauth2
+carddav = yes
+carddav_url = https://dav.example.test/contacts/
+""",
+    )
+
+    payload_types = [payload["PayloadType"] for payload in profile["PayloadContent"]]  # type: ignore[union-attr]
+    assert payload_types == ["com.apple.mail.managed", "com.apple.carddav.account"]
+
+
+def test_mobileconfig_ignores_webdav_file_shares(tmp_path: Path) -> None:
+    profile = render(
+        tmp_path,
+        """
+webdav = yes
+webdav_url = https://files.example.test/dav/
+webdav_auth = http-basic
+""",
+    )
+
+    assert len(profile["PayloadContent"]) == 1  # type: ignore[arg-type]
