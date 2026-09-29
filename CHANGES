@@ -1,3 +1,10 @@
+* Version 3.0.0-beta.4 - 2026-09-29
+---------------------------------
+- Add password-free CalDAV and CardDAV Mobileconfig accounts where supported
+- Preserve OAuth-only DAV discovery in Autoconfig and PACC without password fallback
+- Validate endpoint ports and OAuth issuer syntax against OAuth public draft -06
+- Refresh protocol references and document deployment and migration requirements
+
 * Version 3.0.0-beta.3 - 2026 modernization preview
 ---------------------------------
 - Compile the Mojo entrypoint for an explicit Linux x86-64-v3 baseline
