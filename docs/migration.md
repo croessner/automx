@@ -60,3 +60,20 @@ configuration-directory-local compatibility documents.
 
 Autodiscover v2 is new, experimental, and off by default. Enable it only after
 all returned HTTPS URLs are explicitly configured and tested.
+
+## OAuth public -06 issuer validation
+
+Issuer publication now follows draft-ietf-mailmaint-oauth-public-06 section 3.2.
+Configurations containing dot path segments or percent-encoded unreserved path
+characters are rejected, as are malformed URI spellings. These path restrictions
+already existed in -05; accepting them was a validation gap. A trailing path
+slash is allowed by -06 and is preserved exactly.
+
+Run `automx config validate` for every served domain before upgrading. If a
+configuration is rejected, obtain the exact issuer from the authorization
+server and correct the configuration; do not automatically normalize an issuer,
+which could change its identity. Re-render and republish the PACC digest when
+issuer bytes change, retaining the old and new DNS records during the cache
+transition as described above. No digest change is required for unchanged valid
+configuration. Client and authorization-server upgrades must independently
+satisfy the [OAuth deployment responsibilities](protocols/oauth-dcr.md#oauth-public-06-deployment-responsibilities).

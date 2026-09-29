@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from enum import StrEnum
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Protocol(StrEnum):
@@ -92,20 +93,40 @@ class OAuthConfiguration(ImmutableModel):
     client secret or invents a dynamic-registration endpoint.
     """
 
-    issuer: str
+    issuer: str = Field(strict=True)
     authorization_url: str | None = None
     token_url: str | None = None
     scopes: tuple[str, ...] = ()
     client_id: str | None = None
     client_secret: str | None = Field(default=None, repr=False, exclude=True)
 
+    @field_validator("issuer", mode="before")
+    @classmethod
+    def validate_issuer_syntax(cls, value: object) -> object:
+        """Reject ambiguous issuer spelling before Pydantic or URL parsing can trim it.
+
+        Draft-ietf-mailmaint-oauth-public-06 section 3.2 requires exact issuer
+        identity. Validate without decoding or normalizing the published value.
+        """
+        if not isinstance(value, str):
+            return value
+        if not re.fullmatch(r"[A-Za-z0-9:/\[\]@!$&'()*+,;=._~%\-]+", value):
+            raise ValueError("issuer must be an ASCII HTTPS URI without query or fragment")
+        if re.search(r"%(?![0-9A-Fa-f]{2})", value):
+            raise ValueError("issuer contains invalid percent-encoding")
+        validate_https_url(value, field_name="issuer")
+        path = urlsplit(value).path
+        if not re.fullmatch(r"[A-Za-z0-9/:@!$&'()*+,;=._~%\-]*", path):
+            raise ValueError("issuer contains invalid URI path characters")
+        if any(segment in {".", ".."} for segment in path.split("/")):
+            raise ValueError("issuer must not contain dot path segments")
+        for encoded in re.findall(r"%([0-9A-Fa-f]{2})", path):
+            if re.fullmatch(r"[A-Za-z0-9._~\-]", chr(int(encoded, 16))):
+                raise ValueError("issuer must not percent-encode unreserved path characters")
+        return value
+
     @model_validator(mode="after")
     def validate_oauth_metadata(self) -> OAuthConfiguration:
-        validate_https_url(self.issuer, field_name="issuer")
-        issuer_parts = urlsplit(self.issuer)
-        if issuer_parts.query or issuer_parts.fragment:
-            msg = "issuer must not contain a query or fragment"
-            raise ValueError(msg)
         for field_name, value in (
             ("authorization_url", self.authorization_url),
             ("token_url", self.token_url),

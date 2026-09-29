@@ -91,8 +91,12 @@ oauth_scope = openid offline_access urn:ietf:params:oauth:scope:mail
 # oauth_client_id = optional-pre-registered-public-client
 ```
 
-The issuer must use HTTPS and have no query or fragment. Client secrets are
-rejected. See [OAuth and DCR](protocols/oauth-dcr.md).
+The issuer must be an ASCII HTTPS URI without user information, query,
+fragment, `.`/`..` path segments, or percent-encoded unreserved path characters
+(such as `%61` for `a`). Invalid percent escapes, whitespace, and non-URI
+characters are rejected. Valid issuer spelling, including a trailing path
+slash, is preserved; use the exact identifier advertised by the authorization
+server. Client secrets are rejected. See [OAuth and DCR](protocols/oauth-dcr.md).
 
 ## Dynamic backends
 

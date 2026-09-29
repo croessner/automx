@@ -13,7 +13,7 @@ the authorization server.
 
 The public-client profile is expected to support Authorization Code, Refresh
 Token, PKCE `S256`, `token_endpoint_auth_method=none`, issuer identification,
-and the DPoP requirements of `draft-ietf-mailmaint-oauth-public-05`. Deployments
+and the protocol-specific DPoP rules of `draft-ietf-mailmaint-oauth-public-06`. Deployments
 must configure mail/contact/calendar scopes appropriate to their authorization
 server. automx does not infer scopes or endpoints and never publishes a client
 secret.
@@ -21,6 +21,51 @@ secret.
 Administrators must verify authorization-server discovery and registration
 policy separately. An issuer URL accepted by automx is a syntactic configuration
 contract, not proof that the external server is reachable or interoperable.
+
+## OAuth public -06 deployment responsibilities
+
+The source is [draft-ietf-mailmaint-oauth-public-06, published 2026-09-16](https://www.ietf.org/archive/id/draft-ietf-mailmaint-oauth-public-06.html),
+an Internet-Draft, not an RFC. Its native-client profile does not cover browser
+or server-side web applications. Updating automx discovery metadata alone does
+not establish conformance of a deployment to the entire profile.
+
+- **Issuer publication (automx):** Section 3.2 requires an HTTPS URI without
+  user information, query, fragment, dot path segments, or percent-encoded
+  unreserved path characters. automx rejects these instead of normalizing them.
+  Valid issuer spelling is retained exactly, including a trailing path slash,
+  which -06 permits. Invalid percent escapes and non-URI characters are also
+  rejected. Endpoint discovery and exact issuer comparison belong to the client.
+- **Discovery (client and servers):** Clients fetch RFC 8414 metadata with the
+  specified OIDC fallback and do not follow metadata redirects. Resource servers
+  expose the issuer through RFC 9728 metadata for HTTP or the failed
+  OAUTHBEARER response for IMAP/POP/SMTP. automx remains only a publisher of
+  configured endpoints and issuer information.
+- **Resource binding (client and authorization server):** Sections 3.2, 3.4,
+  and 3.6 define complete `protected_resources` metadata when required,
+  component-wise URL matching, hostname resource indicators for non-HTTP
+  services, and restrictions on where tokens may be sent. Cross-domain hosting
+  needs particular care: the authorization server must advertise the permitted
+  resources; clients must apply the draft's registrable-domain fallback only
+  when that metadata is absent. These are authorization-server metadata fields,
+  not extra Autoconfig or PACC fields.
+- **DPoP (client and authorization server):** Section 3.8 distinguishes HTTP
+  from SASL services. DPoP-bound access tokens cannot be used with IMAP, POP,
+  or SMTP OAUTHBEARER. A mixed client may use bearer tokens throughout or follow
+  the specified resource-separated token flow. It must not register
+  `dpop_bound_access_tokens=true` for that mixed flow, must check token types,
+  and must support DPoP nonce handling when using DPoP.
+- **Scopes (deployment):** Section 3.9 requires a conforming server to support
+  the interoperable scopes for the services it offers. The profile defines
+  `urn:ietf:params:oauth:scope:mail`, `urn:ietf:params:oauth:scope:contacts`, and
+  `urn:ietf:params:oauth:scope:calendars`. Configure the actual supported scopes;
+  automx preserves configured scopes and cannot grant or verify their meaning.
+  Private scopes remain possible but do not substitute for these requirements
+  when claiming full profile conformance.
+
+For an upgrade, validate each domain's configuration and test the native login,
+refresh, and resource-access flows against the external servers separately.
+Existing valid issuer metadata produces unchanged document bytes. Correcting
+an invalid issuer changes PACC bytes and requires updating its DNS digest.
 
 ## DAV discovery across formats
 
