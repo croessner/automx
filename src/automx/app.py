@@ -369,6 +369,15 @@ def create_app(
         operation_id="post_autodiscover_xml",
         response_class=XMLResponse,
     )
+    # Exchange serves this path case-insensitively, so Outlook and MobileSync
+    # clients in the field also request the capitalized spelling. Alias it
+    # to the same handler; it is left out of the schema to keep one
+    # operation per contract.
+    @app.post(
+        "/Autodiscover/Autodiscover.xml",
+        include_in_schema=False,
+        response_class=XMLResponse,
+    )
     async def autodiscover(request: Request) -> Response:
         try:
             root: etree._Element = await parse_xml_request(

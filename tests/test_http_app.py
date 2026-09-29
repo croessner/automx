@@ -164,3 +164,34 @@ ews_url = https://mail.example.test/EWS/Exchange.asmx
     )
     assert redirect.status_code == 307
     assert "private@example.test" not in caplog.text
+
+
+def test_autodiscover_accepts_the_capitalized_exchange_path(config_path: Path) -> None:
+    client = TestClient(create_app(config_path=config_path))
+    body = (
+        b'<?xml version="1.0" encoding="utf-8"?>'
+        b'<Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/'
+        b'outlook/requestschema/2006"><Request>'
+        b"<EMailAddress>user@example.test</EMailAddress>"
+        b"<AcceptableResponseSchema>http://schemas.microsoft.com/exchange/autodiscover/"
+        b"outlook/responseschema/2006a</AcceptableResponseSchema>"
+        b"</Request></Autodiscover>"
+    )
+    headers = {"content-type": "text/xml"}
+
+    lowercase = client.post("/autodiscover/autodiscover.xml", content=body, headers=headers)
+    capitalized = client.post("/Autodiscover/Autodiscover.xml", content=body, headers=headers)
+
+    assert capitalized.status_code == 200
+    assert capitalized.content == lowercase.content
+    assert b"imap.example.test" in capitalized.content
+    assert client.get("/Autodiscover/Autodiscover.xml").status_code == 405
+
+
+def test_capitalized_autodiscover_path_is_not_a_second_openapi_operation(
+    config_path: Path,
+) -> None:
+    paths = create_app(config_path=config_path).openapi()["paths"]
+
+    assert "/autodiscover/autodiscover.xml" in paths
+    assert "/Autodiscover/Autodiscover.xml" not in paths
