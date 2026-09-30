@@ -53,19 +53,19 @@ def test_protocol_routes_have_framework_method_contracts(config_path: Path) -> N
 
 
 def test_autodiscover_requires_xml_and_rejects_malformed_or_active_content(
-    config_path: Path,
+    config_path: Path, autodiscover_path: str,
 ) -> None:
     client = TestClient(create_app(config_path=config_path))
 
     unsupported = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=b"x=1",
         headers={"content-type": "application/x-www-form-urlencoded"},
     )
     assert unsupported.status_code == 415
 
     malformed = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=b"<Autodiscover>",
         headers={"content-type": "application/xml"},
     )
@@ -73,7 +73,7 @@ def test_autodiscover_requires_xml_and_rejects_malformed_or_active_content(
     assert b"<ErrorCode>600</ErrorCode>" in malformed.content
 
     doctype = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=b'<!DOCTYPE x [<!ENTITY secret SYSTEM "file:///etc/passwd">]><x>&secret;</x>',
         headers={"content-type": "text/xml"},
     )
@@ -82,12 +82,14 @@ def test_autodiscover_requires_xml_and_rejects_malformed_or_active_content(
     assert b"root:" not in doctype.content
 
 
-def test_body_limit_is_enforced_with_and_without_a_content_length(config_path: Path) -> None:
+def test_body_limit_is_enforced_with_and_without_a_content_length(
+    config_path: Path, autodiscover_path: str,
+) -> None:
     client = TestClient(create_app(config_path=config_path, max_request_bytes=1_024))
     body = b"<x>" + (b"a" * 2_048) + b"</x>"
 
     declared = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=body,
         headers={"content-type": "application/xml"},
     )
@@ -97,7 +99,7 @@ def test_body_limit_is_enforced_with_and_without_a_content_length(config_path: P
         yield body
 
     streamed = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=chunks(),
         headers={"content-type": "application/xml"},
     )
@@ -105,13 +107,13 @@ def test_body_limit_is_enforced_with_and_without_a_content_length(config_path: P
 
 
 def test_authorization_body_and_query_secrets_are_not_logged(
-    config_path: Path, caplog: pytest.LogCaptureFixture
+    config_path: Path, caplog: pytest.LogCaptureFixture, autodiscover_path: str,
 ) -> None:
     caplog.set_level(logging.INFO, logger="automx.access")
     client = TestClient(create_app(config_path=config_path))
 
     client.post(
-        "/autodiscover/autodiscover.xml?password=query-secret",
+        f"{autodiscover_path}?password=query-secret",
         content=b"<broken>body-secret",
         headers={
             "authorization": "Basic header-secret",
@@ -121,7 +123,7 @@ def test_authorization_body_and_query_secrets_are_not_logged(
     )
 
     log_output = caplog.text
-    assert "POST /autodiscover/autodiscover.xml 200" in log_output
+    assert f"POST {autodiscover_path} 200" in log_output
     assert "query-secret" not in log_output
     assert "body-secret" not in log_output
     assert "header-secret" not in log_output
@@ -167,7 +169,7 @@ ews_url = https://mail.example.test/EWS/Exchange.asmx
 
 
 def test_autodiscover_accepts_the_capitalized_exchange_path(config_path: Path) -> None:
-    client = TestClient(create_app(config_path=config_path))
+    client = TestClient(create_app(config_path=config_path), follow_redirects=False)
     body = (
         b'<?xml version="1.0" encoding="utf-8"?>'
         b'<Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/'
@@ -182,7 +184,10 @@ def test_autodiscover_accepts_the_capitalized_exchange_path(config_path: Path) -
     lowercase = client.post("/autodiscover/autodiscover.xml", content=body, headers=headers)
     capitalized = client.post("/Autodiscover/Autodiscover.xml", content=body, headers=headers)
 
-    assert capitalized.status_code == 200
+    assert lowercase.status_code == capitalized.status_code == 200
+    assert lowercase.headers["content-type"] == capitalized.headers["content-type"] == (
+        "text/xml; charset=utf-8"
+    )
     assert capitalized.content == lowercase.content
     assert b"imap.example.test" in capitalized.content
     assert client.get("/Autodiscover/Autodiscover.xml").status_code == 405

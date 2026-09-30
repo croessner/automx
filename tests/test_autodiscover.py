@@ -65,10 +65,12 @@ def request_xml(namespace: str, response_schema: str, email: str = "user@example
 </Autodiscover>""".encode()
 
 
-def test_outlook_response_has_one_protocol_element_per_service(tmp_path: Path) -> None:
+def test_outlook_response_has_one_protocol_element_per_service(
+    tmp_path: Path, autodiscover_path: str,
+) -> None:
     client = TestClient(create_app(config_path=configuration(tmp_path)))
     response = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=request_xml(OUTLOOK_REQUEST_NAMESPACE, OUTLOOK_RESPONSE_NAMESPACE),
         headers={"content-type": "text/xml"},
     )
@@ -100,10 +102,12 @@ def test_outlook_response_has_one_protocol_element_per_service(tmp_path: Path) -
     )
 
 
-def test_mobile_response_uses_only_configured_activesync_url(tmp_path: Path) -> None:
+def test_mobile_response_uses_only_configured_activesync_url(
+    tmp_path: Path, autodiscover_path: str,
+) -> None:
     client = TestClient(create_app(config_path=configuration(tmp_path)))
     response = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=request_xml(MOBILE_REQUEST_NAMESPACE, MOBILE_RESPONSE_NAMESPACE),
         headers={"content-type": "text/xml"},
     )
@@ -119,10 +123,12 @@ def test_mobile_response_uses_only_configured_activesync_url(tmp_path: Path) -> 
     )
 
 
-def test_namespace_and_schema_errors_are_protocol_xml_not_http_500(tmp_path: Path) -> None:
+def test_namespace_and_schema_errors_are_protocol_xml_not_http_500(
+    tmp_path: Path, autodiscover_path: str,
+) -> None:
     client = TestClient(create_app(config_path=configuration(tmp_path)))
     wrong_namespace = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=request_xml("urn:not-autodiscover", OUTLOOK_RESPONSE_NAMESPACE),
         headers={"content-type": "application/xml"},
     )
@@ -130,7 +136,7 @@ def test_namespace_and_schema_errors_are_protocol_xml_not_http_500(tmp_path: Pat
     assert etree.fromstring(wrong_namespace.content).findtext(".//{*}ErrorCode") == "600"
 
     unknown_schema = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=request_xml(MOBILE_REQUEST_NAMESPACE, "https://attacker.example/schema"),
         headers={"content-type": "text/xml"},
     )
@@ -139,10 +145,12 @@ def test_namespace_and_schema_errors_are_protocol_xml_not_http_500(tmp_path: Pat
     assert b"attacker.example" not in unknown_schema.content
 
 
-def test_malformed_xml_uses_error_600_but_oversized_body_stays_http_413(tmp_path: Path) -> None:
+def test_malformed_xml_uses_error_600_but_oversized_body_stays_http_413(
+    tmp_path: Path, autodiscover_path: str,
+) -> None:
     client = TestClient(create_app(config_path=configuration(tmp_path), max_request_bytes=1_024))
     malformed = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=b"<Autodiscover>",
         headers={"content-type": "text/xml"},
     )
@@ -150,7 +158,7 @@ def test_malformed_xml_uses_error_600_but_oversized_body_stays_http_413(tmp_path
     assert etree.fromstring(malformed.content).findtext(".//{*}ErrorCode") == "600"
 
     oversized = client.post(
-        "/autodiscover/autodiscover.xml",
+        autodiscover_path,
         content=b"<x>" + (b"x" * 2_048) + b"</x>",
         headers={"content-type": "text/xml"},
     )

@@ -11,6 +11,13 @@ documented paths. Do not forward a client-supplied base URL into automx. Health
 checks use `/health/live` and `/health/ready`; those routes intentionally expose
 no configuration.
 
+For Autodiscover XML, allow both `POST /autodiscover/autodiscover.xml` and
+`POST /Autodiscover/Autodiscover.xml` through any case-sensitive proxy path
+filters. Both paths use the same handler without a redirect; the capitalized
+compatibility alias is omitted from OpenAPI. Other capitalization variants are
+not registered. Microsoft includes the capitalized spelling in its
+[Autodiscover lookup example](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxdisco/a2757b8d-f43e-4e6e-a65d-8283a90a5de3).
+
 When running behind a proxy, configure trusted forwarded-header handling at the
 process or ingress boundary. The packaged command disables proxy-header trust by
 default. Do not expose Uvicorn directly to an untrusted network.
