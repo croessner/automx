@@ -1,4 +1,4 @@
-automx 3.0.0-beta.4
+automx 3.0.0-beta.5
 ====================
 
 This release is a ground-up modernization of the established automx service.
@@ -36,6 +36,13 @@ validates endpoint ports. OAuth issuer validation now follows public-client
 draft -06, rejecting ambiguous URI spellings without changing valid issuer
 identity. Check every configured domain before upgrading; correcting an invalid
 issuer requires updating the byte-sensitive PACC DNS digest.
+
+Beta 5 accepts POST /Autodiscover/Autodiscover.xml as a direct alias of the
+canonical lowercase Autodiscover XML endpoint. Both paths share request limits,
+XML error handling, and privacy-preserving logging; OpenAPI retains one operation.
+Allow both spellings through case-sensitive reverse-proxy path filters. Other
+capitalization variants are not registered. Existing configuration and PACC DNS
+digests are unchanged by this compatibility addition.
 
 The IETF specifications used by several features are Internet-Drafts. Their
 exact pinned versions are listed in `docs/protocols/status.md`.

@@ -1,6 +1,6 @@
 # Protocol status and sources
 
-This matrix records the exact source versions used by automx 3.0.0-beta.4. Internet-
+This matrix records the exact source versions used by automx 3.0.0-beta.5. Internet-
 Drafts are work in progress and must be re-reviewed before updating them.
 
 | Surface | Implemented contract | Status |

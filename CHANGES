@@ -1,3 +1,9 @@
+* Version 3.0.0-beta.5 - 2026-09-30
+---------------------------------
+- Accept POST /Autodiscover/Autodiscover.xml alongside the canonical lowercase path
+- Preserve shared Outlook, MobileSync, parser, body-limit, and logging contracts
+- Document proxy routing for both supported Autodiscover XML spellings
+
 * Version 3.0.0-beta.4 - 2026-09-29
 ---------------------------------
 - Add password-free CalDAV and CardDAV Mobileconfig accounts where supported
